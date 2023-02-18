@@ -1,1 +1,14 @@
-# http_server
+== http_server
+
+=== requirements
+standard development environment..
+* boost, boost logs
+* gtest
+
+on ubuntu/debian
+`
+sudo apt install libboost-dev
+sudo apt install libboost-log-dev
+sudo apt install libgtest-dev
+`
+

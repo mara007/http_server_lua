@@ -75,9 +75,9 @@ Host: sample.com\r\n\r\n";
 
     std::cout << "..final fragment\n";
     ASSERT_TRUE(http_buf.new_data(fragment3.c_str(), fragment3.size()));
-    ASSERT_EQ(cb_called_times, 1);
+    ASSERT_EQ(cb_called_times, 2);
     ASSERT_EQ(msg->method, "get");
-    ASSERT_EQ(msg->headers.size(), 5);
-    ASSERT_EQ(msg->get_header("connection"), "keep-alive");
+    ASSERT_EQ(msg->headers.size(), 1);
+    ASSERT_EQ(msg->get_header("host"), "sample.com");
 }
 

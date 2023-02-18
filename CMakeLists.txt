@@ -1,7 +1,7 @@
-project("server")
-cmake_minimum_required(VERSION 3.22)
+project("http server")
+cmake_minimum_required(VERSION 3.16)
 
-set(CMAKE_CXX_FLAGS -ggdb3 )
+set(CMAKE_CXX_FLAGS "-std=c++17 -ggdb3" )
 
 
 set(TARGET http_server)

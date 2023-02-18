@@ -2,26 +2,30 @@
 
 #include <map>
 #include <string>
-#include <vector>
 #include <functional>
 #include <algorithm>
 #include <memory>
 #include <optional>
+#include <mutex>
+#include <ostream>
 
 #include <boost/log/trivial.hpp>
 
 static const std::string MSG_SEPARATOR = "\r\n\r\n";
 static const std::string NEW_LINE = "\r\n";
 
-struct http_req_t {
+struct http_msg_with_headers_t {
     std::multimap<std::string, std::string> headers;
-    std::string method;
-    std::string path;
-    std::string body;
 
     //! if multiple headers 'name' present, returns the first one
     std::optional<std::string> get_header(const std::string& name);
     void add_header(std::string name, std::string value);
+};
+
+struct http_req_t : public http_msg_with_headers_t {
+    std::string method;
+    std::string path;
+    std::string body;
 
     /*! parses give http message without the body - 'CLRF [ message-body ]' part 
      *  - header names will be in lowercase
@@ -31,44 +35,44 @@ struct http_req_t {
     static std::shared_ptr<http_req_t> parse(const char* data, size_t lenght);
 };
 
+std::ostream& operator<<(std::ostream& ostr, const http_req_t& http_req);
+
 template<size_t N>
 class http_buffer_t {
     public:
     using http_msg_reasembled_cb_t = std::function<void(std::shared_ptr<http_req_t>)>;
 
     http_buffer_t()
-    : m_buffer(), m_new_msg_cb(nullptr)
-    {}
-
-    http_buffer_t(http_msg_reasembled_cb_t cb)
-    : m_buffer(), m_new_msg_cb(std::move(cb))
+    : m_buffer(), m_msg_reassembled_cb(nullptr)
     {
         m_buffer.reserve(N);
-        m_buff_pos = std::begin(m_buffer);
+    }
+
+    http_buffer_t(http_msg_reasembled_cb_t cb)
+    : m_buffer(), m_msg_reassembled_cb(std::move(cb))
+    {
+        m_buffer.reserve(N);
     }
 
     void register_msg_reasembled_cb(http_msg_reasembled_cb_t cb) {
-        m_new_msg_cb = cb;
+        m_msg_reassembled_cb = cb;
     }
 
     bool new_data(const char* data, size_t length) {
-        auto curr_size = std::distance(std::begin(m_buffer), m_buff_pos);
-        if (curr_size + length > m_buffer.capacity())
+        BOOST_LOG_TRIVIAL(debug) << "http_buffer_t::new_data() buffer.size=" << m_buffer.size()
+                                 << ", buffer.capacity=" << m_buffer.capacity() << ", data length=" << length;
+        if (m_buffer.size() + length > m_buffer.capacity())
             return false;
 
-        m_buff_pos = std::copy(data, data+length, m_buff_pos);
+        auto guard = std::lock_guard(m_buff_mutex);
+        std::copy(data, data+length, std::back_inserter(m_buffer));
 
-        typename decltype(m_buffer)::iterator http_msg_end;
+        size_t http_msg_end;
         do {
-            http_msg_end = std::find_end(std::begin(m_buffer), m_buff_pos,
-                                        std::begin(MSG_SEPARATOR), std::end(MSG_SEPARATOR));
+            http_msg_end = m_buffer.find(MSG_SEPARATOR);
 
-            // BOOST_LOG_TRIVIAL(info) << "MSG:\n" << std::string(m_buffer.begin(), m_buff_pos) << std::endl;
-            // if (http_msg_end != m_buff_pos) {
-            if (http_msg_end != std::end(m_buffer)) {
-                auto http_msg = http_req_t::parse(&m_buffer.front(),
-                                    std::distance(std::begin(m_buffer), http_msg_end-MSG_SEPARATOR.size()));
-                                    // std::distance(std::begin(m_buffer), m_buff_pos-MSG_SEPARATOR.size()));
+            if (http_msg_end != std::string::npos) {
+                auto http_msg = http_req_t::parse(m_buffer.data(), http_msg_end);
 
                 if (!http_msg)
                     return false;
@@ -78,20 +82,20 @@ class http_buffer_t {
                     return false;
                 }
 
-                m_new_msg_cb(http_msg);
-
-                std::vector<char> tmp_buf;
-                tmp_buf.reserve(N);
-                m_buff_pos = std::copy(http_msg_end + MSG_SEPARATOR.size(), m_buff_pos, std::begin(tmp_buf));
-                m_buffer.swap(tmp_buf);
+                m_buffer.erase(0, http_msg_end + MSG_SEPARATOR.size());
+                if (m_msg_reassembled_cb) {
+                    BOOST_LOG_TRIVIAL(info) << "reasebled callback: " << *http_msg;
+                    m_msg_reassembled_cb(http_msg);
+                }
             }
-        } while(http_msg_end != m_buff_pos); //check if multiple messages arrived in one packet/data bulk
+        } while(http_msg_end != std::string::npos); //check if multiple messages arrived in one packet/data bulk
+
         return true;
     }
 
     private:
-    std::vector<char> m_buffer;
-    std::vector<char>::iterator m_buff_pos;
-    http_msg_reasembled_cb_t m_new_msg_cb;
+    std::string m_buffer;
+    std::mutex m_buff_mutex;
+    http_msg_reasembled_cb_t m_msg_reassembled_cb;
 };
 

@@ -1,6 +1,7 @@
 #include "http.hpp"
 
 #include <string>
+#include <vector>
 #include <string_view>
 #include <algorithm>
 
@@ -26,8 +27,6 @@ std::vector<std::string_view> tokenize(std::string_view data, std::string_view s
         pos = data.find(separator, last_pos);
     }
 
-
-    BOOST_LOG_TRIVIAL(debug) << "size=" << data.size() << ", last pos=" << last_pos;
     if (last_pos == data.size()) //skip last separator
         return result;
 
@@ -106,14 +105,22 @@ std::shared_ptr<http_req_t> http_req_t::parse(const char* data, size_t lenght) {
     return msg;
 }
 
-std::optional<std::string> http_req_t::get_header(const std::string& name) {
+std::optional<std::string> http_msg_with_headers_t::get_header(const std::string& name) {
     if (auto h = headers.find(name); h != std::end(headers))
         return h->second;
 
     return std::nullopt;
 }
 
-void http_req_t::add_header(std::string name, std::string value) {
+void http_msg_with_headers_t::add_header(std::string name, std::string value) {
     headers.insert(std::pair{name, value});
 }
 
+
+std::ostream& operator<<(std::ostream& ostr, const http_req_t& http_req) {
+    ostr << "HTTP REQ: " << http_req.method << " " << http_req.path << "\nHEADERS:\n";
+    for (const auto& [k, v]: http_req.headers)
+        ostr << "\t" << k << ": " << v << std::endl;
+
+    return ostr;
+}
