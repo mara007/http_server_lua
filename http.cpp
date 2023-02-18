@@ -52,7 +52,7 @@ std::string to_lowercase(std::string_view s) {
     return result;
 }
 
-std::shared_ptr<message_t> message_t::parse(const char* data, size_t lenght) {
+std::shared_ptr<http_req_t> http_req_t::parse(const char* data, size_t lenght) {
     static const std::string HTTP_VERS = "HTTP/1.1";
 
     std::string_view raw_msg(data, lenght);
@@ -74,7 +74,7 @@ std::shared_ptr<message_t> message_t::parse(const char* data, size_t lenght) {
         BOOST_LOG_TRIVIAL(info) << "invalid - bad http version: " << start_line[3];
         return nullptr;
     }
-    auto msg = std::make_shared<message_t>();
+    auto msg = std::make_shared<http_req_t>();
     msg->method = to_lowercase(start_line[0]);
     msg->path = start_line[1];
 
@@ -106,14 +106,14 @@ std::shared_ptr<message_t> message_t::parse(const char* data, size_t lenght) {
     return msg;
 }
 
-std::optional<std::string> message_t::get_header(const std::string& name) {
+std::optional<std::string> http_req_t::get_header(const std::string& name) {
     if (auto h = headers.find(name); h != std::end(headers))
         return h->second;
 
     return std::nullopt;
 }
 
-void message_t::add_header(std::string name, std::string value) {
+void http_req_t::add_header(std::string name, std::string value) {
     headers.insert(std::pair{name, value});
 }
 

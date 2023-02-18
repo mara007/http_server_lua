@@ -60,7 +60,7 @@ TEST(tokenize, three) {
     ASSERT_EQ(res[2], "three");
 }
 
-TEST(message_t, parse) {
+TEST(http_req_t, parse) {
     std::string raw_msg = "GET /path/to/resource HTTP/1.1\r\n\
 Host: example.com\r\n\
 User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/109.0\r\n\
@@ -75,7 +75,7 @@ Cache-Control: no-cache\r\n\
 
     std::cout << "msg:" << std::endl << raw_msg << std::endl;
 
-    auto parsed_msg = message_t::parse(raw_msg.c_str(), raw_msg.size());
+    auto parsed_msg = http_req_t::parse(raw_msg.c_str(), raw_msg.size());
     ASSERT_TRUE(parsed_msg.operator bool());
     ASSERT_EQ(parsed_msg->method, "get");
     ASSERT_EQ(parsed_msg->path, "/path/to/resource");

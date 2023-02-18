@@ -2,22 +2,24 @@
 #include "http.hpp"
 #include <boost/log/trivial.hpp>
 
-/************* SESSION ****************/
-session_t::session_t(boost::asio::ip::tcp::socket socket)
-: m_socket(std::move(socket))
+/************* CONNECTION ****************/
+connection_t::connection_t(boost::asio::ip::tcp::socket socket)
+: m_http_buffer(), m_socket(std::move(socket))
 {}
 
-void session_t::do_read() {
+void connection_t::do_read() {
     auto self = shared_from_this();
     auto cb = [self](boost::system::error_code ec, std::size_t length) {
-        if (!ec) {
-            self->do_write(length);
-        }
+        if (ec)
+            return;
+
+        self->do_write(length);
+
     };
     m_socket.async_read_some(boost::asio::buffer(m_data, max_length), cb);
 }
 
-void session_t::do_write(std::size_t length) {
+void connection_t::do_write(std::size_t length) {
     auto self = shared_from_this();
     auto cb = [self](boost::system::error_code ec, std::size_t /*length*/) {
         if (!ec) {
@@ -28,7 +30,7 @@ void session_t::do_write(std::size_t length) {
     boost::asio::async_write(m_socket, boost::asio::buffer(m_data, length), cb);
 }
 
-void session_t::start() {
+void connection_t::start() {
     do_read();
 }
 
@@ -44,7 +46,9 @@ void server_t::do_accept() {
         if (!ec) {
             auto ep = socket.remote_endpoint();
             BOOST_LOG_TRIVIAL(info) << "New connection from " << ep.address().to_string();
-            std::make_shared<session_t>(std::move(socket))->start();
+
+            auto conn = std::make_shared<connection_t>(std::move(socket));
+            conn->start();
         }
 
         do_accept();
@@ -52,3 +56,6 @@ void server_t::do_accept() {
     m_acceptor.async_accept(cb);
 }
 
+void server_t::register_new_conn_cb(server_t::new_conn_cb_t cb) {
+    m_new_conn_cb = cb;
+}
