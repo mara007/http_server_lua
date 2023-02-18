@@ -19,6 +19,8 @@ class connection_t : public std::enable_shared_from_this<connection_t> {
     void register_new_msg_cb(new_msg_cb_t cb);
     void start();
 
+    void send_response(const http_resp_t& resp);
+
     private:
     void do_read();
     void do_write(std::size_t length);

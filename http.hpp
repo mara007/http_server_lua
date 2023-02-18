@@ -35,7 +35,31 @@ struct http_req_t : public http_msg_with_headers_t {
     static std::shared_ptr<http_req_t> parse(const char* data, size_t lenght);
 };
 
+struct http_resp_t : public http_msg_with_headers_t {
+    std::string reason;
+    std::string body;
+    int code;
+
+    http_resp_t(int c, std::string reas)
+    : http_msg_with_headers_t(), reason(reas), body(), code(c)
+    {}
+
+    http_resp_t()
+    : http_msg_with_headers_t(), reason(), body(), code()
+    {}
+
+    /*! serialized filled data to string. when body provided, 'content-lenght' header will be supplied automatically
+     *  ABNF:
+     *  - HTTP-message = status-line CRLF *( field-line CRLF ) CRLF [ message-body ]
+     *  - status-line = HTTP-version SP status-code SP [ reason-phrase ]
+
+     */
+    std::string serialize_to_string() const;
+};
+
+std::ostream& operator<<(std::ostream& ostr, const http_msg_with_headers_t& msg_with_headers);
 std::ostream& operator<<(std::ostream& ostr, const http_req_t& http_req);
+std::ostream& operator<<(std::ostream& ostr, const http_resp_t& http_resp);
 
 template<size_t N>
 class http_buffer_t {

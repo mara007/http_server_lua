@@ -7,6 +7,8 @@
 
 #include <boost/log/trivial.hpp>
 
+static const std::string HTTP_VERS = "HTTP/1.1";
+
 std::vector<std::string_view> tokenize(std::string_view data, std::string_view separator, bool consume_empty) {
     if (separator.empty())
         return {};
@@ -15,7 +17,6 @@ std::vector<std::string_view> tokenize(std::string_view data, std::string_view s
     auto pos = data.find(separator);
 
     std::vector<std::string_view> result;
-    // while (pos < data.size()) {
     while (pos != std::string::npos) {
         auto token = data.substr(last_pos, pos - last_pos);
         BOOST_LOG_TRIVIAL(debug) << "token: " << token;
@@ -52,8 +53,9 @@ std::string to_lowercase(std::string_view s) {
 }
 
 std::shared_ptr<http_req_t> http_req_t::parse(const char* data, size_t lenght) {
-    static const std::string HTTP_VERS = "HTTP/1.1";
-
+    /* TODO
+      HTTP 1/1 - mandatory header : host * 1
+    */
     std::string_view raw_msg(data, lenght);
     std::string_view NL(NEW_LINE);
     std::vector<std::string_view> lines = tokenize(raw_msg, NL, false);
@@ -117,10 +119,61 @@ void http_msg_with_headers_t::add_header(std::string name, std::string value) {
 }
 
 
-std::ostream& operator<<(std::ostream& ostr, const http_req_t& http_req) {
-    ostr << "HTTP REQ: " << http_req.method << " " << http_req.path << "\nHEADERS:\n";
-    for (const auto& [k, v]: http_req.headers)
+std::ostream& operator<<(std::ostream& ostr, const http_msg_with_headers_t& msg_with_headers) {
+    ostr << "HEADERS:\n";
+    for (const auto& [k, v]: msg_with_headers.headers)
         ostr << "\t" << k << ": " << v << std::endl;
 
     return ostr;
+}
+
+std::ostream& operator<<(std::ostream& ostr, const http_req_t& http_req) {
+    ostr << "HTTP REQ: " << http_req.method << " " << http_req.path << "\n";
+    ostr << static_cast<http_msg_with_headers_t>(http_req);
+
+    return ostr;
+}
+
+std::ostream& operator<<(std::ostream& ostr, const http_resp_t& http_resp) {
+    ostr << "HTTP RESP: " << http_resp.code << " " << http_resp.reason << "\n";
+    ostr << static_cast<http_msg_with_headers_t>(http_resp);
+
+    return ostr;
+}
+
+
+std::string http_resp_t::serialize_to_string() const {
+    static const std::string SEP{": "};
+    std::string result;
+    result.reserve(64);
+
+    // status-line = HTTP-version SP status-code SP [ reason-phrase ]
+    result.append(HTTP_VERS);
+    result.append(1, ' ');
+    result.append(std::to_string(code));
+    result.append(1, ' ');
+    result.append(reason);
+    result.append(NEW_LINE);
+
+    // *( field-line CRLF )
+    for (const auto& [k,v]: headers) {
+        result.append(k);
+        result.append(SEP);
+        result.append(v);
+        result.append(NEW_LINE);
+    }
+
+    if (!body.empty()) {
+        result.append("content-length");
+        result.append(SEP);
+        result.append(std::to_string(body.length()));
+        result.append(NEW_LINE);
+
+        result.append(NEW_LINE);
+        result.append(body);
+    } else {
+        result.append(NEW_LINE);
+    }
+
+    return result;
 }

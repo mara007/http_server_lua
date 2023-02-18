@@ -15,6 +15,10 @@ int main(int argc, char* args[]) {
             BOOST_LOG_TRIVIAL(info) << "=========== NEW CONN ===============";
             conn->register_new_msg_cb([](auto conn, auto http_req) {
                 BOOST_LOG_TRIVIAL(info) << "=========== NEW REQ RECEIVED ===========\n" << *http_req;
+
+                http_resp_t resp(200, "OK");
+                resp.body = "<h1>HELLO WORLD OF HTTP!</h1>";
+                conn->send_response(resp);
             });
         });
         std::cout << "=== listen on " << PORT << " ===\n";
