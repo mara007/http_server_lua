@@ -1,4 +1,5 @@
-#include "server.h"
+#include "server/server.h"
+#include "http/http_connection.h"
 #include <boost/asio.hpp>
 #include <boost/log/trivial.hpp>
 #include <iostream>
@@ -10,7 +11,7 @@ constexpr int THREADS = 3;
 int main(int argc, char* args[]) {
     std::cout << "=== starting ===\n";
     try {
-        server_t server(THREADS);
+        server_t<http_connection_t> server(THREADS);
 
         server.register_new_conn_cb([](auto conn) {
             BOOST_LOG_TRIVIAL(info) << "=========== NEW CONN ===============";

@@ -8,7 +8,7 @@ add_executable(test_http_server ${TEST_FILES})
 
 target_link_libraries(
     test_http_server
-    server
+    http
     ${Boost_LIBRARIES}
     GTest::gtest GTest::gtest_main
 )

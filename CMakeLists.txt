@@ -7,12 +7,6 @@ set(CMAKE_CXX_FLAGS "-std=c++17 -ggdb3" )
 set(TARGET http_server)
 add_executable(${TARGET} main.cpp)
 
-add_library(server
-    server.cpp
-    http.cpp
-)
-target_link_libraries(server ${Boost_LIBRARIES})
-
 set(Boost_USE_STATIC_LIBS        ON)  # only find static libs
 set(Boost_USE_DEBUG_LIBS         ON) # ignore debug libs and
 set(Boost_USE_RELEASE_LIBS       ON)  # only find release libs
@@ -27,9 +21,10 @@ include_directories(.)
 
 target_link_libraries(
     ${TARGET}
-    server
+    http
     ${Boost_LIBRARIES}
 )
 
+add_subdirectory(http)
 add_subdirectory(test)
 
