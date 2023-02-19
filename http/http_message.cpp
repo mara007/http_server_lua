@@ -19,7 +19,7 @@ std::vector<std::string_view> tokenize(std::string_view data, std::string_view s
     std::vector<std::string_view> result;
     while (pos != std::string::npos) {
         auto token = data.substr(last_pos, pos - last_pos);
-        BOOST_LOG_TRIVIAL(debug) << "token: " << token;
+        // BOOST_LOG_TRIVIAL(debug) << "token: " << token;
 
         if (not (consume_empty && token.empty()))
             result.push_back(token);
@@ -32,7 +32,7 @@ std::vector<std::string_view> tokenize(std::string_view data, std::string_view s
         return result;
 
     auto token = data.substr(last_pos);
-    BOOST_LOG_TRIVIAL(debug) << "token: " << token;
+    // BOOST_LOG_TRIVIAL(debug) << "token: " << token;
 
     if (not (consume_empty && token.empty()))
         result.push_back(token);
@@ -100,7 +100,7 @@ std::shared_ptr<http_req_t> http_req_t::parse(const char* data, size_t lenght) {
             header_val.remove_suffix(1);
 
         std::string lowercase_header_name = to_lowercase(header_name);
-        BOOST_LOG_TRIVIAL(debug) << "new header - '" << lowercase_header_name << "' : '" << header_val << "'";
+        // BOOST_LOG_TRIVIAL(debug) << "new header - '" << lowercase_header_name << "' : '" << header_val << "'";
         msg->headers.emplace(std::move(lowercase_header_name), header_val);
     }
 

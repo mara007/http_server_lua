@@ -3,9 +3,8 @@
 
 
 http_connection_t::http_connection_t(boost::asio::io_context& io_context, boost::asio::ip::tcp::socket socket)
-: m_http_buffer()
-, m_socket(std::move(socket))
-, m_io_context(io_context)
+: abstract_connection_t(io_context, std::move(socket))
+, m_http_buffer()
 , m_io_write_strand(io_context)
 {
     auto msg_cb = [this](std::shared_ptr<http_req_t> new_req) {
@@ -25,6 +24,9 @@ http_connection_t::~http_connection_t() {
 
 void http_connection_t::do_read() {
     auto self = shared_from_this();
+
+    BOOST_LOG_TRIVIAL(info) << "######### DO READ";
+
     auto cb = [self, this](boost::system::error_code ec, std::size_t length) {
         if (ec)
             return;
@@ -35,8 +37,11 @@ void http_connection_t::do_read() {
             auto resp = http_resp_t(400, "BAD REQUEST");
             resp.add_header("connection", "close");
             self->send_response(resp);
-            BOOST_LOG_TRIVIAL(info) << "connection_t - closing socket due to data decoding error";
-            self->m_socket.close();
+            BOOST_LOG_TRIVIAL(info) << "connection_t - socket will be close due to a decoding error";
+            m_io_context.post(m_io_write_strand.wrap([self]() {
+                BOOST_LOG_TRIVIAL(info) << "connection_t - closing socket due to a data decoding error";
+                self->m_socket.close();
+            }));
         }
 
         do_read();
@@ -56,6 +61,17 @@ void http_connection_t::send_response(http_resp_t resp) {
             self->do_queue_message(resp_str);
         }));
 }
+
+// 
+// void http_connection_t::send_response_sync(http_resp_t resp) {
+//     auto resp_str = resp.serialize_to_string();
+//     boost::system::error_code ec;
+//     boost::asio::write(m_socket, boost::asio::buffer(resp_str), ec);
+//     if (ec) {
+//         BOOST_LOG_TRIVIAL(error) << "error - can't send response: " << ec.message();
+//         return;
+//     }
+// }
 
 void http_connection_t::do_queue_message(std::string resp_str) {
     //no locking - io_context::strand is used to ensure 'send' events are processed sequentially

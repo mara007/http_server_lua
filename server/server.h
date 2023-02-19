@@ -13,8 +13,8 @@
 
 #include "abstract_connection.h"
 
+// based on ASIO echo server tutorial
 
-//! based on ASIO echo server tutorial
 template<typename connection_t>
 class server_t {
     static_assert(std::is_base_of<abstract_connection_t, connection_t>::value,
@@ -62,17 +62,19 @@ class server_t {
     private:
     void do_accept() {
         auto cb = [this](boost::system::error_code ec, boost::asio::ip::tcp::socket socket) {
-            if (!ec) {
-                auto ep = socket.remote_endpoint();
-                BOOST_LOG_TRIVIAL(info) << "New connection from " << ep.address().to_string();
+            if (ec)
+                return;
 
-                auto conn = std::make_shared<connection_t>(m_io_context, std::move(socket));
-                conn->start();
-                if (m_new_conn_cb)
-                    m_new_conn_cb(conn);
+            auto ep = socket.remote_endpoint();
+            BOOST_LOG_TRIVIAL(info) << "New connection from " << ep.address().to_string();
 
-                do_accept();
-            }
+            auto conn = std::make_shared<connection_t>(m_io_context, std::move(socket));
+            BOOST_LOG_TRIVIAL(info) << "New connection created";
+            conn->start();
+            if (m_new_conn_cb)
+                m_new_conn_cb(conn);
+
+            do_accept();
         };
         m_acceptor.async_accept(cb);
     };
