@@ -5,12 +5,13 @@
 #include <memory>
 
 constexpr int PORT = 20000;
+constexpr int THREADS = 3;
 
 int main(int argc, char* args[]) {
     std::cout << "=== starting ===\n";
     try {
-        boost::asio::io_context io_context;
-        server_t server(io_context, PORT);
+        server_t server(THREADS);
+
         server.register_new_conn_cb([](auto conn) {
             BOOST_LOG_TRIVIAL(info) << "=========== NEW CONN ===============";
             conn->register_new_msg_cb([](auto conn, auto http_req) {
@@ -21,8 +22,9 @@ int main(int argc, char* args[]) {
                 conn->send_response(resp);
             });
         });
+
         std::cout << "=== listen on " << PORT << " ===\n";
-        io_context.run();
+        server.start_server(PORT);
     } catch (std::exception& e) {
         std::cerr << "Exception: " << e.what() << "\n";
     }

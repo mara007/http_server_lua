@@ -20,6 +20,8 @@ struct http_msg_with_headers_t {
     //! if multiple headers 'name' present, returns the first one
     std::optional<std::string> get_header(const std::string& name);
     void add_header(std::string name, std::string value);
+
+    virtual ~http_msg_with_headers_t() = default;
 };
 
 struct http_req_t : public http_msg_with_headers_t {
@@ -33,6 +35,8 @@ struct http_req_t : public http_msg_with_headers_t {
      *  - HTTP-message = start-line CRLF *( field-line CRLF ) CRLF [ message-body ]
      */
     static std::shared_ptr<http_req_t> parse(const char* data, size_t lenght);
+
+    virtual ~http_req_t() = default;
 };
 
 struct http_resp_t : public http_msg_with_headers_t {
@@ -44,9 +48,9 @@ struct http_resp_t : public http_msg_with_headers_t {
     : http_msg_with_headers_t(), reason(reas), body(), code(c)
     {}
 
-    http_resp_t()
-    : http_msg_with_headers_t(), reason(), body(), code()
-    {}
+    http_resp_t() = default;
+    http_resp_t(const http_resp_t&) = default;
+    virtual ~http_resp_t() = default;
 
     /*! serialized filled data to string. when body provided, 'content-lenght' header will be supplied automatically
      *  ABNF:
