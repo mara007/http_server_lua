@@ -14,17 +14,24 @@ set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME    OFF)
 find_package(Boost COMPONENTS log log_setup REQUIRED)
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
-set(BOOST_LIB ${Boost_LIBRARIES})
 
+find_package(Lua 5.4 REQUIRED)
+message(STATUS "LUA libraries: ${LUA_LIBRARIES}")
+message(STATUS "LUA includes : ${LUA_INCLUDE_DIR}")
+
+include_directories(${LUA_INCLUDE_DIR})
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(.)
 
 target_link_libraries(
     ${TARGET}
     http
+    lua_man
     ${Boost_LIBRARIES}
 )
 
 add_subdirectory(http)
+add_subdirectory(lua)
+
 add_subdirectory(test)
 

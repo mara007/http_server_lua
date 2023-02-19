@@ -1,4 +1,5 @@
 #include "http_connection.h"
+#include <boost/log/trivial.hpp>
 
 
 
@@ -24,12 +25,14 @@ http_connection_t::~http_connection_t() {
 
 void http_connection_t::do_read() {
     auto self = shared_from_this();
-
-    BOOST_LOG_TRIVIAL(info) << "######### DO READ";
-
     auto cb = [self, this](boost::system::error_code ec, std::size_t length) {
-        if (ec)
+        if (ec) {
+            BOOST_LOG_TRIVIAL(error) << "connection_t::do_read() - in socket::async_read_some() CB - error: "
+                                     << ec.message() << ". Closing socket";
+
+            self->m_socket.close();
             return;
+        }
 
         auto res = m_http_buffer.new_data(m_socket_buf, length);
         if (!res) {
@@ -53,7 +56,7 @@ void http_connection_t::start() {
     do_read();
 }
 
-void http_connection_t::send_response(http_resp_t resp) {
+void http_connection_t::send_response(http_resp_t& resp) {
     BOOST_LOG_TRIVIAL(info) << "connection_t::send_response()";
 
     m_io_context.post(m_io_write_strand.wrap(
@@ -80,7 +83,10 @@ void http_connection_t::do_queue_message(std::string resp_str) {
 
     if (!write_in_progress) {
         start_packet_send();
+        return;
     }
+
+    BOOST_LOG_TRIVIAL(info) << "WRITE IN PROGRESS";
 }
 
 void http_connection_t::start_packet_send() {

@@ -20,7 +20,7 @@ class http_connection_t : public std::enable_shared_from_this<http_connection_t>
     void register_new_msg_cb(new_msg_cb_t cb);
     virtual void start() override;
 
-    void send_response(http_resp_t resp);
+    void send_response(http_resp_t& resp);
 
     private:
     void do_read();

@@ -6,9 +6,10 @@ standard development environment..
 * gtest
 
 on ubuntu/debian
-`
+```
 sudo apt install libboost-dev
 sudo apt install libboost-log-dev
 sudo apt install libgtest-dev
-`
+sudo apt install liblua5.4-dev
+```
 

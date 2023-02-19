@@ -69,7 +69,6 @@ class server_t {
             BOOST_LOG_TRIVIAL(info) << "New connection from " << ep.address().to_string();
 
             auto conn = std::make_shared<connection_t>(m_io_context, std::move(socket));
-            BOOST_LOG_TRIVIAL(info) << "New connection created";
             conn->start();
             if (m_new_conn_cb)
                 m_new_conn_cb(conn);
