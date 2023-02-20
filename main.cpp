@@ -9,13 +9,13 @@
 #include <memory>
 
 constexpr int PORT = 20000;
-constexpr int THREADS = 3;
+constexpr int THREADS = 4;
 
 int main(int argc, char* args[]) {
     std::cout << "=== starting ===\n";
 
     auto lua_manager = std::make_shared<lua_manager_t>();
-    if (!lua_manager->init("http_server.lua", 1)) {
+    if (!lua_manager->init("http_server.lua", THREADS)) {
         return 1;
     }
 
@@ -31,7 +31,9 @@ int main(int argc, char* args[]) {
             http_resp.body.append("<p>");
             http_resp.body.append(http_req->path);
             http_resp.body.append("</p>");
+            BOOST_LOG_TRIVIAL(info) << "MAIN send response";
             conn->send_response(http_resp);
+            // conn->close();
         });
     });
 
@@ -42,5 +44,6 @@ int main(int argc, char* args[]) {
     } catch (std::exception& e) {
         std::cerr << "Exception: " << e.what() << "\n";
     }
+
     return 0;
 }

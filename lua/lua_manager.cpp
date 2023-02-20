@@ -1,4 +1,5 @@
 #include "lua_manager.h"
+#include "lua_functions.h"
 
 #include <cassert>
 #include <algorithm>
@@ -11,6 +12,7 @@ static const int LUA_TYPE_FUNCTION = 6;
 lua_State* lua_manager_t::new_lua_state() {
     lua_State* l = luaL_newstate();
     luaL_openlibs(l);
+    register_custom_functions(l);
 
     return l;
 }
@@ -23,22 +25,15 @@ lua_State* lua_manager_t::get_available_lua_state(bool blocking) {
 
         m_no_lua_state_available = m_available_lua_states.empty();
 
-            BOOST_LOG_TRIVIAL(info) << "GET LUA";
-        if (m_no_lua_state_available)
-            BOOST_LOG_TRIVIAL(info) << "LAST LUA USED";
-
         return result;
     }
 
     if (!blocking)
         return nullptr;
 
-    BOOST_LOG_TRIVIAL(info) << "NO LUA AVAIL, waiting";
-
     std::unique_lock lock(m_available_lua_states_mutex);
     m_available_lua_state_cv.wait(lock, [this]{ return !m_no_lua_state_available;});
 
-    BOOST_LOG_TRIVIAL(info) << "NO LUA AVAIL, wait over, luas:" << m_available_lua_states.size();
     assert(!m_available_lua_states.empty());
     auto result = m_available_lua_states.front();
     m_available_lua_states.pop_front();
@@ -50,10 +45,8 @@ lua_State* lua_manager_t::get_available_lua_state(bool blocking) {
 void lua_manager_t::return_lua_state_to_available(lua_State *l) {
     std::unique_lock lock(m_available_lua_states_mutex);
     m_available_lua_states.push_back(l);
-    BOOST_LOG_TRIVIAL(info) << "RETURN LUA";
 
     if (m_no_lua_state_available) {
-    BOOST_LOG_TRIVIAL(info) << "RETURN LUA - NOTIFY";
         m_no_lua_state_available = false;
         m_available_lua_state_cv.notify_all();
     }
@@ -75,7 +68,7 @@ bool lua_manager_t::init(const std::string& script, size_t lua_instances) {
 
         if (int t = lua_getglobal(l, "handle_http_message"); t != LUA_TYPE_FUNCTION) {
             BOOST_LOG_TRIVIAL(error) << "ERROR loading LUA script " << script << ", entry 'function "
-                                     << LUA_ENTRY_FUNCTION << " handle_http_message(request, response)' must be defined in a script!";
+                                    << LUA_ENTRY_FUNCTION << " handle_http_message(request, response)' must be defined in a script!";
             lua_close(l);
             return false;
         }
@@ -100,4 +93,5 @@ void lua_manager_t::invoke_script(http_req_t& req, http_resp_t& resp) {
     }
 
     return_lua_state_to_available(l);
+    BOOST_LOG_TRIVIAL(error) << "SCRIPT LEAVE";
 }

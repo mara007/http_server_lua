@@ -86,15 +86,21 @@ class http_buffer_t {
         m_msg_reassembled_cb = cb;
     }
 
-    bool new_data(const char* data, size_t length) {
+    enum new_data_state_e : uint8_t {
+        NEED_MORE_DATA = 0,
+        MSG_ERROR,
+        MSG_OK
+    };
+    new_data_state_e new_data(const char* data, size_t length) {
         BOOST_LOG_TRIVIAL(debug) << "http_buffer_t::new_data() buffer.size=" << m_buffer.size()
                                  << ", buffer.capacity=" << m_buffer.capacity() << ", data length=" << length;
         if (m_buffer.size() + length > m_buffer.capacity())
-            return false;
+            return new_data_state_e::MSG_ERROR;
 
-        auto guard = std::lock_guard(m_buff_mutex);
+        std::lock_guard guard(m_buff_mutex);
         std::copy(data, data+length, std::back_inserter(m_buffer));
 
+        bool msg_finished = false;
         size_t http_msg_end;
         do {
             http_msg_end = m_buffer.find(MSG_SEPARATOR);
@@ -103,11 +109,11 @@ class http_buffer_t {
                 auto http_msg = http_req_t::parse(m_buffer.data(), http_msg_end);
 
                 if (!http_msg)
-                    return false;
+                    return new_data_state_e::MSG_ERROR;
 
                 if (http_msg->get_header("content-length")) {
                     BOOST_LOG_TRIVIAL(info) << "messages with body (e.g. with content-length) currently not supported!";
-                    return false;
+                    return new_data_state_e::MSG_ERROR;
                 }
 
                 m_buffer.erase(0, http_msg_end + MSG_SEPARATOR.size());
@@ -115,10 +121,12 @@ class http_buffer_t {
                     BOOST_LOG_TRIVIAL(info) << "reasebled callback: " << *http_msg;
                     m_msg_reassembled_cb(http_msg);
                 }
+                msg_finished = true;
             }
+            BOOST_LOG_TRIVIAL(info) << "ASSEMBLE: end_msg=" << http_msg_end << ", size=" << m_buffer.size();
         } while(http_msg_end != std::string::npos); //check if multiple messages arrived in one packet/data bulk
 
-        return true;
+        return msg_finished ? new_data_state_e::MSG_OK : new_data_state_e::NEED_MORE_DATA;
     }
 
     private:

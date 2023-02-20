@@ -15,7 +15,7 @@ set(Boost_USE_STATIC_RUNTIME    OFF)
 find_package(Boost COMPONENTS log log_setup REQUIRED)
 message(STATUS "Boost libraries: ${Boost_LIBRARIES}")
 
-find_package(Lua 5.4 REQUIRED)
+find_package(Lua 5.3 REQUIRED)
 message(STATUS "LUA libraries: ${LUA_LIBRARIES}")
 message(STATUS "LUA includes : ${LUA_INCLUDE_DIR}")
 
@@ -29,6 +29,8 @@ target_link_libraries(
     lua_man
     ${Boost_LIBRARIES}
 )
+
+# target_compile_definitions(${TARGET} PRIVATE BOOST_ASIO_ENABLE_HANDLER_TRACKING=1)
 
 add_subdirectory(http)
 add_subdirectory(lua)
