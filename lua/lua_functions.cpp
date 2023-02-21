@@ -14,6 +14,55 @@ int http_req_new(lua_State* l){
 }
 
 /*************************************************/
+/****************** MSG COMMON *******************/
+/*************************************************/
+
+int http_msg_add_header(lua_State* l, const char* meta_table) {
+    int argc = lua_gettop(l);
+    if (argc != 3) {
+        return luaL_error(l, "http[req/resp] - invalid number of arguments");
+    }
+
+    http_msg_with_headers_t* http_msg = (http_msg_with_headers_t *)luaL_checkudata(l, 1, meta_table);
+    luaL_argcheck(l, http_msg!= nullptr, 1, "http[req/resp] msg object expected");
+
+    const char* header_name = lua_tolstring(l, 2, nullptr);
+    const char* header_value = lua_tolstring(l, 3, nullptr);
+
+    if (!header_name || !header_value) {
+        return luaL_error(l, "http_req/resp:add_header() got NIL!");
+    }
+
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_msg:add_header('" << header_name << "', '" << header_value << "') ptr=" << (void*)http_msg;
+    http_msg->add_header(header_name, header_value);
+    return 0;
+}
+
+int http_msg_get_header(lua_State* l, const char* meta_table) {
+    int argc = lua_gettop(l);
+    if (argc != 2) {
+        return luaL_error(l, "http[req/resp] - invalid number of arguments");
+    }
+
+    http_msg_with_headers_t* http_msg = (http_msg_with_headers_t *)luaL_checkudata(l, 1, meta_table);
+    luaL_argcheck(l, http_msg!= nullptr, 1, "http[req/resp] msg object expected");
+    auto header_name = lua_tolstring(l, 2, nullptr);
+    if (!header_name ) {
+        return luaL_error(l, "http_req/resp:add_header() got NIL!");
+    }
+
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_msg:get_header('" << header_name << "')";
+    if (auto header_val = http_msg->get_header(header_name); header_val) {
+        lua_pushlstring(l, header_val.value().c_str(), header_val.value().size());
+        return 1;
+    }
+
+    lua_pushnil(l);
+    return 1;
+
+
+}
+/*************************************************/
 /****************** RESPONSE *********************/
 /*************************************************/
 int http_resp_new(lua_State* l){
@@ -24,79 +73,47 @@ int http_resp_new(lua_State* l){
     return 1;
 }
 
-// http_resp_t * check_http_resp(lua_State* l) {
-
-// }
-
-int http_msg_add_header(lua_State* l, const char* meta_table) {
-    int argc = lua_gettop(l);
-    if (argc != 3) {
-        return luaL_error(l, "http[req/resp] - invalid number of arguments");
+int http_resp_del(lua_State* l){
+    if (!lua_islightuserdata(l, 1)) {
+        return luaL_error(l, "expected http_resp object");
     }
+    http_resp_t *m = (http_resp_t*)lua_touserdata(l, 1);
 
-    http_msg_with_headers_t* http_msg = (http_msg_with_headers_t *)luaL_checkudata(l, 1, "http_resp.meta");
-    luaL_argcheck(l, http_msg!= nullptr, 1, "http[req/resp] msg object expected");
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_resp:~() ptr=" << (void*)m;
 
-    const char *header_name = lua_tolstring(l, 2, nullptr);
-    const char *header_value = lua_tolstring(l, 3, nullptr);
-
-    BOOST_LOG_TRIVIAL(debug) << "lua: http_msg:add_header('" << header_name << "', '" << header_value << "') ptr=" << (void*)http_msg;
-    http_msg->add_header(header_name, header_value);
+    delete m;
     return 0;
 }
 
+
 int http_resp_add_header(lua_State* l) {
-    return http_msg_add_header(l, "http_resp__");
+    return http_msg_add_header(l, "http_resp.meta");
+}
+
+int http_resp_get_header(lua_State* l) {
+    return http_msg_get_header(l, "http_resp.meta");
 }
 
 void register_http_response(lua_State* l) {
-    static const luaL_Reg http_resp_func[] = {
+    BOOST_LOG_TRIVIAL(debug) << "lua: register http_resp";
+    static const luaL_Reg http_resp_meta[] = {
         {"new", http_resp_new},
-        { nullptr, nullptr }
-    };
-
-    static const luaL_Reg http_resp_methods[] = {
+        {"delete", http_resp_del},
         {"add_header", http_resp_add_header},
+        {"get_header", http_resp_get_header},
         { nullptr, nullptr }
     };
 
-      luaL_newmetatable(l, "http_resp.meta");
-      luaL_setfuncs(l, http_resp_methods, 0);
-      luaL_newlib(l, http_resp_func);
+    luaL_newmetatable(l, "http_resp.meta");
+    luaL_setfuncs(l, http_resp_meta, 0);
+    lua_pushvalue(l, -1);
+    lua_setfield(l, -1, "__index");
+    luaL_newlib(l, http_resp_meta);
+    lua_setglobal(l, "http_resp");
 }
 
 void register_custom_functions(lua_State* l) {
 
-    static const luaL_Reg __meta_table[] = {
-        {"__gc", dummy},
-        {"__index", dummy},
-        {"__newindex", dummy},
-        { nullptr, nullptr }
-    };
-
-    static const luaL_Reg __metas[] = {
-        {"__gc", dummy},
-        {"__index", dummy},
-        {"__newindex", dummy},
-        { nullptr, nullptr }
-    };
-
     register_http_response(l);
-    // -----------
-//     int lib_id, meta_id;
 
-//     lua_createtable(l, 0, 0);
-//     lib_id = lua_gettop(l);
-//     luaL_newmetatable(l, "http_resp_t");
-//     meta_id = lua_gettop(l);
-//     luaL_setfuncs(l, __meta_table, 0);
-
-//     luaL_newlib(l, __http_resp_methods);
-//     lua_setfield(l, meta_id, "__index");
-
-//     luaL_newlib(l, __metas);
-//     lua_setfield(l, meta_id, "__metatable");
-
-//     lua_setmetatable(l, lib_id);
-//     lua_setglobal(l, "http_response");
 }
