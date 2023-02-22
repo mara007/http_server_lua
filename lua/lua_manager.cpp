@@ -81,20 +81,21 @@ bool lua_manager_t::init(const std::string& script, size_t lua_instances) {
 bool lua_manager_t::invoke_script(http_req_t& req, http_resp_t& resp) {
     lua_State* l = get_available_lua_state(true);
 
+    int stackn = lua_gettop(l);
+
     lua_getglobal(l, LUA_ENTRY_FUNCTION);
-    lua_pushnumber(l, 1);
-    lua_pushnumber(l, 2);
+    lua_pushlightuserdata(l, &req);
+    luaL_setmetatable(l, LUA_HTTP_REQ_META);
+
+    lua_pushlightuserdata(l, &resp);
+    luaL_setmetatable(l, LUA_HTTP_RESP_META);
 
     bool lua_result = true;
-    if (auto ret = lua_pcall(l, 2, 1, 0); ret != LUA_OK) {
-        BOOST_LOG_TRIVIAL(error) << "ERROR in lua script";
+    if (auto ret = lua_pcall(l, 2, 0, 0); ret != LUA_OK) {
+        const char* lua_err_msg = lua_tolstring(l, -1, nullptr);
+        BOOST_LOG_TRIVIAL(error) << "ERROR in lua script:" << lua_err_msg;
         lua_result = false;
     }
-
-    // if (const char* res = luaL_checkstring(l, -1); res) {
-    //     resp.code = 200;
-    //     resp.body = res;
-    // }
 
     return_lua_state_to_available(l);
     BOOST_LOG_TRIVIAL(debug) << "SCRIPT LEAVE";

@@ -7,6 +7,7 @@
 #include <boost/asio.hpp>
 
 #include "http_message.h"
+#include "http_buffer.h"
 #include "server/abstract_connection.h"
 
 //! based on ASIO echo server tutorial

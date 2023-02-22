@@ -1,29 +1,39 @@
+#include "lua_functions.h"
 #include "http/http_message.h"
 
 
 #include "lua.hpp"
 #include <boost/log/trivial.hpp>
-
-
-static int dummy(lua_State* l) {
-    return 0;
-}
-
-int http_req_new(lua_State* l){
-
-}
+/*************************************************/
+/****************** COMMON ***********************/
+/*************************************************/
 
 /*************************************************/
 /****************** MSG COMMON *******************/
 /*************************************************/
 
-int http_msg_add_header(lua_State* l, const char* meta_table) {
+//! check for given meta_table type on top of the lua stack
+template<typename T>
+T* my_check_type(lua_State* l, int no_of_args, const char* meta_table) {
+    if (lua_gettop(l) != no_of_args) {
+        luaL_error(l, "invalid number of arguments");
+        return nullptr;
+    }
+
+    T* typ = reinterpret_cast<T*>(luaL_checkudata(l, 1, meta_table));
+    luaL_argcheck(l, typ != nullptr, 1, "object of different type expected");
+    return typ;
+}
+
+namespace http_msg_common
+{
+int add_header(lua_State* l, const char* meta_table) {
     int argc = lua_gettop(l);
     if (argc != 3) {
         return luaL_error(l, "http[req/resp] - invalid number of arguments");
     }
 
-    http_msg_with_headers_t* http_msg = (http_msg_with_headers_t *)luaL_checkudata(l, 1, meta_table);
+    http_msg_with_headers_t* http_msg = reinterpret_cast<http_msg_with_headers_t*>(luaL_checkudata(l, 1, meta_table));
     luaL_argcheck(l, http_msg!= nullptr, 1, "http[req/resp] msg object expected");
 
     const char* header_name = lua_tolstring(l, 2, nullptr);
@@ -38,14 +48,10 @@ int http_msg_add_header(lua_State* l, const char* meta_table) {
     return 0;
 }
 
-int http_msg_get_header(lua_State* l, const char* meta_table) {
-    int argc = lua_gettop(l);
-    if (argc != 2) {
-        return luaL_error(l, "http[req/resp] - invalid number of arguments");
-    }
+int get_header(lua_State* l, const char* meta_table) {
+    auto http_msg = my_check_type<http_msg_with_headers_t>(l, 2, meta_table);
+    if (!http_msg) return 1;
 
-    http_msg_with_headers_t* http_msg = (http_msg_with_headers_t *)luaL_checkudata(l, 1, meta_table);
-    luaL_argcheck(l, http_msg!= nullptr, 1, "http[req/resp] msg object expected");
     auto header_name = lua_tolstring(l, 2, nullptr);
     if (!header_name ) {
         return luaL_error(l, "http_req/resp:add_header() got NIL!");
@@ -59,25 +65,123 @@ int http_msg_get_header(lua_State* l, const char* meta_table) {
 
     lua_pushnil(l);
     return 1;
-
-
 }
+
+} // namespace http_msg_common
+
 /*************************************************/
-/****************** RESPONSE *********************/
+/****************** REQUEST **********************/
 /*************************************************/
-int http_resp_new(lua_State* l){
-    http_resp_t *m = new http_resp_t();
-    BOOST_LOG_TRIVIAL(debug) << "lua: http_resp:new() ptr=" << (void*)m;
+
+namespace http_req
+{
+int new_msg(lua_State* l){
+    http_req_t *m = new http_req_t();
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_req:new() ptr=" << (void*)m;
     lua_pushlightuserdata(l, (void*)m);
-    luaL_setmetatable(l, "http_resp.meta");
+    luaL_setmetatable(l, LUA_HTTP_REQ_META);
     return 1;
 }
 
-int http_resp_del(lua_State* l){
+int del_msg(lua_State* l){
+    if (!lua_islightuserdata(l, 1)) {
+        return luaL_error(l, "expected http_req object");
+    }
+    http_req_t *m = reinterpret_cast<http_req_t*>(lua_touserdata(l, 1));
+
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_req:~() ptr=" << (void*)m;
+
+    delete m;
+    return 0;
+}
+
+int add_header(lua_State* l) {
+    return http_msg_common::add_header(l, LUA_HTTP_REQ_META);
+}
+
+int get_header(lua_State* l) {
+    return http_msg_common::get_header(l, LUA_HTTP_REQ_META);
+}
+
+int get_method(lua_State* l){
+    auto http_req = my_check_type<http_req_t>(l, 1, LUA_HTTP_REQ_META);
+    if (!http_req) return 1;
+
+    lua_pushlstring(l, http_req->method.data(), http_req->method.size());
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_req:get_method() method=" << http_req->method;
+    return 1;
+}
+
+int get_path(lua_State* l){
+    auto http_req = my_check_type<http_req_t>(l, 1, LUA_HTTP_REQ_META);
+    if (!http_req) return 1;
+
+    lua_pushlstring(l, http_req->path.data(), http_req->path.size());
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_req:get_path() path=" << http_req->path;
+    return 1;
+}
+
+int get_body(lua_State* l){
+    auto http_req = my_check_type<http_req_t>(l, 1, LUA_HTTP_REQ_META);
+    if (!http_req) return 1;
+
+    lua_pushlstring(l, http_req->body.data(), http_req->body.size());
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_req:get_body() size=" << http_req->body.size();
+    return 1;
+}
+
+int dump(lua_State* l) {
+    auto http_req = my_check_type<http_req_t>(l, 1, LUA_HTTP_REQ_META);
+    if (!http_req) return 0;
+
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_req:dump():\n" << *http_req;
+    return 0;
+}
+
+void register_type(lua_State* l) {
+    BOOST_LOG_TRIVIAL(debug) << "lua: register http_req";
+    static const luaL_Reg http_req_meta[] = {
+        {"new", new_msg},
+        {"delete", del_msg},
+        {"dump", dump},
+        {"add_header", add_header},
+        {"get_header", get_header},
+        {"get_method", get_method},
+        {"get_path", get_path},
+        {"get_body", get_body},
+        { nullptr, nullptr }
+    };
+
+    luaL_newmetatable(l, LUA_HTTP_REQ_META);
+    luaL_setfuncs(l, http_req_meta, 0);
+    lua_pushvalue(l, -1);
+    lua_setfield(l, -1, "__index");
+    luaL_newlib(l, http_req_meta);
+    lua_setglobal(l, "http_req");
+}
+
+
+} //namespace http_req
+
+/*************************************************/
+/****************** RESPONSE *********************/
+/*************************************************/
+
+namespace http_resp
+{
+int new_msg(lua_State* l){
+    http_resp_t *m = new http_resp_t();
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_resp:new() ptr=" << (void*)m;
+    lua_pushlightuserdata(l, (void*)m);
+    luaL_setmetatable(l, LUA_HTTP_RESP_META);
+    return 1;
+}
+
+int del_msg(lua_State* l){
     if (!lua_islightuserdata(l, 1)) {
         return luaL_error(l, "expected http_resp object");
     }
-    http_resp_t *m = (http_resp_t*)lua_touserdata(l, 1);
+    http_resp_t *m = reinterpret_cast<http_resp_t*>(lua_touserdata(l, 1));
 
     BOOST_LOG_TRIVIAL(debug) << "lua: http_resp:~() ptr=" << (void*)m;
 
@@ -85,26 +189,95 @@ int http_resp_del(lua_State* l){
     return 0;
 }
 
-
-int http_resp_add_header(lua_State* l) {
-    return http_msg_add_header(l, "http_resp.meta");
+int add_header(lua_State* l) {
+    return http_msg_common::add_header(l, LUA_HTTP_RESP_META);
 }
 
-int http_resp_get_header(lua_State* l) {
-    return http_msg_get_header(l, "http_resp.meta");
+int get_header(lua_State* l) {
+    return http_msg_common::get_header(l, LUA_HTTP_RESP_META);
 }
 
-void register_http_response(lua_State* l) {
+int set_status_code(lua_State* l){
+    auto http_resp = my_check_type<http_resp_t>(l, 2, LUA_HTTP_RESP_META);
+    if (!http_resp) return 1;
+
+
+    int code = lua_tointeger(l, 2);
+    if (code <= 0 || code >= 600) {
+        return luaL_error(l, "http_resp:set_status_code() - http status code %d is invalid", code);
+    }
+
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_resp:set_status_code(" << code << ")";
+    http_resp->code = code;
+    return 0;
+}
+
+int set_reason(lua_State* l){
+    auto http_resp = my_check_type<http_resp_t>(l, 2, LUA_HTTP_RESP_META);
+    if (!http_resp) return 1;
+
+    const char* reason = lua_tolstring(l, 2, nullptr); 
+    if (!reason) {
+        return luaL_error(l, "http_resp:set_reason() arg is NIL");
+    }
+
+    http_resp->reason = reason;
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_resp:set_reason(" << http_resp->reason << ")";
+    return 0;
+}
+
+int set_body(lua_State* l){
+    auto http_resp = my_check_type<http_resp_t>(l, 2, LUA_HTTP_RESP_META);
+    if (!http_resp) return 1;
+
+    const char* body = lua_tolstring(l, 2, nullptr); 
+    if (!body) {
+        return luaL_error(l, "http_resp:set_body() arg is NIL");
+    }
+
+    http_resp->body = body;
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_resp:set_body()";
+    return 0;
+}
+
+int append_body(lua_State* l){
+    auto http_resp = my_check_type<http_resp_t>(l, 2, LUA_HTTP_RESP_META);
+    if (!http_resp) return 1;
+
+    const char* body = lua_tolstring(l, 2, nullptr); 
+    if (!body) {
+        return luaL_error(l, "http_resp:set_body() arg is NIL");
+    }
+
+    http_resp->body.append(body);
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_resp:append_body()";
+    return 0;
+}
+
+int dump(lua_State* l) {
+    auto http_resp = my_check_type<http_resp_t>(l, 1, LUA_HTTP_RESP_META);
+    if (!http_resp) return 0;
+
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_resp:dump():\n" << *http_resp;
+    return 0;
+}
+
+void register_type(lua_State* l) {
     BOOST_LOG_TRIVIAL(debug) << "lua: register http_resp";
     static const luaL_Reg http_resp_meta[] = {
-        {"new", http_resp_new},
-        {"delete", http_resp_del},
-        {"add_header", http_resp_add_header},
-        {"get_header", http_resp_get_header},
+        {"new", new_msg},
+        {"delete", del_msg},
+        {"dump", dump},
+        {"add_header", add_header},
+        {"get_header", get_header},
+        {"set_status_code", set_status_code},
+        {"set_reason", set_reason},
+        {"set_body", set_body},
+        {"append_body", append_body},
         { nullptr, nullptr }
     };
 
-    luaL_newmetatable(l, "http_resp.meta");
+    luaL_newmetatable(l, LUA_HTTP_RESP_META);
     luaL_setfuncs(l, http_resp_meta, 0);
     lua_pushvalue(l, -1);
     lua_setfield(l, -1, "__index");
@@ -112,8 +285,11 @@ void register_http_response(lua_State* l) {
     lua_setglobal(l, "http_resp");
 }
 
+} //namespace http_resp
+
 void register_custom_functions(lua_State* l) {
+    BOOST_LOG_TRIVIAL(debug) << "lua: registering custom types";
 
-    register_http_response(l);
-
+    http_req::register_type(l);
+    http_resp::register_type(l);
 }

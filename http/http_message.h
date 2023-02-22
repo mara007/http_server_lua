@@ -2,17 +2,16 @@
 
 #include <map>
 #include <string>
-#include <functional>
-#include <algorithm>
+#include <string_view>
 #include <memory>
 #include <optional>
-#include <mutex>
 #include <ostream>
 
 #include <boost/log/trivial.hpp>
 
 static const std::string MSG_SEPARATOR = "\r\n\r\n";
 static const std::string NEW_LINE = "\r\n";
+static const size_t MAX_BODY_SIZE = 1024;
 
 struct http_msg_with_headers_t {
     std::multimap<std::string, std::string> headers;
@@ -28,6 +27,7 @@ struct http_req_t : public http_msg_with_headers_t {
     std::string method;
     std::string path;
     std::string body;
+    std::multimap<std::string, std::string> params;
 
     /*! parses give http message without the body - 'CLRF [ message-body ]' part 
      *  - header names will be in lowercase
@@ -35,6 +35,12 @@ struct http_req_t : public http_msg_with_headers_t {
      *  - HTTP-message = start-line CRLF *( field-line CRLF ) CRLF [ message-body ]
      */
     static std::shared_ptr<http_req_t> parse(const char* data, size_t lenght);
+
+    /*! check if 'content-type' is 'application/x-www-form-urlencoded' and
+     * parses form params from body if it is so.
+     * TODO: decode special characters, e.g. %20 'space', %25 '&' etc.
+     */
+    void parse_body();
 
     virtual ~http_req_t() = default;
 };
@@ -64,74 +70,4 @@ struct http_resp_t : public http_msg_with_headers_t {
 std::ostream& operator<<(std::ostream& ostr, const http_msg_with_headers_t& msg_with_headers);
 std::ostream& operator<<(std::ostream& ostr, const http_req_t& http_req);
 std::ostream& operator<<(std::ostream& ostr, const http_resp_t& http_resp);
-
-template<size_t N>
-class http_buffer_t {
-    public:
-    using http_msg_reasembled_cb_t = std::function<void(std::shared_ptr<http_req_t>)>;
-
-    http_buffer_t()
-    : m_buffer(), m_msg_reassembled_cb(nullptr)
-    {
-        m_buffer.reserve(N);
-    }
-
-    http_buffer_t(http_msg_reasembled_cb_t cb)
-    : m_buffer(), m_msg_reassembled_cb(std::move(cb))
-    {
-        m_buffer.reserve(N);
-    }
-
-    void register_msg_reasembled_cb(http_msg_reasembled_cb_t cb) {
-        m_msg_reassembled_cb = cb;
-    }
-
-    enum new_data_state_e : uint8_t {
-        NEED_MORE_DATA = 0,
-        MSG_ERROR,
-        MSG_OK
-    };
-    new_data_state_e new_data(const char* data, size_t length) {
-        BOOST_LOG_TRIVIAL(debug) << "http_buffer_t::new_data() buffer.size=" << m_buffer.size()
-                                 << ", buffer.capacity=" << m_buffer.capacity() << ", data length=" << length;
-        if (m_buffer.size() + length > m_buffer.capacity())
-            return new_data_state_e::MSG_ERROR;
-
-        std::lock_guard guard(m_buff_mutex);
-        std::copy(data, data+length, std::back_inserter(m_buffer));
-
-        bool msg_finished = false;
-        size_t http_msg_end;
-        do {
-            http_msg_end = m_buffer.find(MSG_SEPARATOR);
-
-            if (http_msg_end != std::string::npos) {
-                auto http_msg = http_req_t::parse(m_buffer.data(), http_msg_end);
-
-                if (!http_msg)
-                    return new_data_state_e::MSG_ERROR;
-
-                if (http_msg->get_header("content-length")) {
-                    BOOST_LOG_TRIVIAL(info) << "messages with body (e.g. with content-length) currently not supported!";
-                    return new_data_state_e::MSG_ERROR;
-                }
-
-                m_buffer.erase(0, http_msg_end + MSG_SEPARATOR.size());
-                if (m_msg_reassembled_cb) {
-                    BOOST_LOG_TRIVIAL(info) << "reasebled callback: " << *http_msg;
-                    m_msg_reassembled_cb(http_msg);
-                }
-                msg_finished = true;
-            }
-            BOOST_LOG_TRIVIAL(info) << "ASSEMBLE: end_msg=" << http_msg_end << ", size=" << m_buffer.size();
-        } while(http_msg_end != std::string::npos); //check if multiple messages arrived in one packet/data bulk
-
-        return msg_finished ? new_data_state_e::MSG_OK : new_data_state_e::NEED_MORE_DATA;
-    }
-
-    private:
-    std::string m_buffer;
-    std::mutex m_buff_mutex;
-    http_msg_reasembled_cb_t m_msg_reassembled_cb;
-};
 

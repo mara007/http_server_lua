@@ -8,8 +8,12 @@
 #include <boost/log/trivial.hpp>
 
 static const std::string HTTP_VERS = "HTTP/1.1";
+static const std::string X_WWW_FORM_ENCODED = "application/x-www-form-urlencoded";
+static const std::string PARAMS_SEPARATOR = "&";
+static const std::string QUERY_PARAMS_SEPARATOR = "?";
+static const std::string VALUE_SEPARATOR = "=";
 
-std::vector<std::string_view> tokenize(std::string_view data, std::string_view separator, bool consume_empty) {
+std::vector<std::string_view> tokenize(std::string_view data, std::string_view separator, bool consume_empty=false) {
     if (separator.empty())
         return {};
 
@@ -50,6 +54,19 @@ std::string to_lowercase(std::string_view s) {
     );
 
     return result;
+}
+
+void parse_url_encoded_params(std::string_view encoded_params, std::multimap<std::string, std::string>& result) {
+    for (auto param : tokenize(encoded_params, PARAMS_SEPARATOR)) {
+        auto pos = param.find(VALUE_SEPARATOR);
+        if(pos == std::string::npos)
+            continue;
+        auto param_name = param.substr(0, pos);
+        auto param_val  = param.substr(pos+1);
+        BOOST_LOG_TRIVIAL(debug) << "new param - '" << param_name << "' : '" << param_val << "'";
+
+        result.emplace(param_name, param_val);
+    }
 }
 
 std::shared_ptr<http_req_t> http_req_t::parse(const char* data, size_t lenght) {
@@ -104,8 +121,32 @@ std::shared_ptr<http_req_t> http_req_t::parse(const char* data, size_t lenght) {
         msg->headers.emplace(std::move(lowercase_header_name), header_val);
     }
 
+    // url encded params
+    std::string_view path_view(msg->path);
+    if (auto pos = path_view.find(QUERY_PARAMS_SEPARATOR); pos != path_view.size()-1 && pos != std::string::npos) {
+        parse_url_encoded_params(path_view.substr(pos+1), msg->params);
+        msg->path.erase(pos);
+    }
+
     return msg;
 }
+
+void http_req_t::parse_body() {
+    if (headers.empty()) {
+        return;
+    }
+
+    auto cth = get_header("content-type");
+    if (!cth)
+        return;
+
+    std::string content_type_lower = to_lowercase(cth.value());
+    if (content_type_lower != X_WWW_FORM_ENCODED)
+        return;
+
+    parse_url_encoded_params(body, params);
+}
+
 
 std::optional<std::string> http_msg_with_headers_t::get_header(const std::string& name) {
     if (auto h = headers.find(name); h != std::end(headers))
@@ -120,7 +161,7 @@ void http_msg_with_headers_t::add_header(std::string name, std::string value) {
 
 
 std::ostream& operator<<(std::ostream& ostr, const http_msg_with_headers_t& msg_with_headers) {
-    ostr << "HEADERS:\n";
+    ostr << "HEADRS:";
     for (const auto& [k, v]: msg_with_headers.headers)
         ostr << "\t" << k << ": " << v << std::endl;
 
@@ -130,6 +171,11 @@ std::ostream& operator<<(std::ostream& ostr, const http_msg_with_headers_t& msg_
 std::ostream& operator<<(std::ostream& ostr, const http_req_t& http_req) {
     ostr << "HTTP REQ: " << http_req.method << " " << http_req.path << "\n";
     ostr << static_cast<http_msg_with_headers_t>(http_req);
+    ostr << "PARAMS:";
+    for (const auto& [k, v]: http_req.params)
+        ostr << "\t" << k << ": " << v << std::endl;
+
+    ostr << "BODY: " << http_req.body;
 
     return ostr;
 }
