@@ -13,6 +13,10 @@ end
 
 function test_shared_storage(request, response)
     print('in test_shared_storage')
+    SHARED_STORAGE.put('key1', 'value1')
+    val = SHARED_STORAGE.get('key1')
+    print('shared storage[key1] = ' .. val)
+    print('shared storage[key1] = ' .. shared_storage.get('key1'))
 end
 
 function prototype_function(data, data2)
