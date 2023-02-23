@@ -29,6 +29,8 @@ struct http_req_t : public http_msg_with_headers_t {
     std::string body;
     std::multimap<std::string, std::string> params;
 
+    std::optional<std::string> get_param(const std::string& name);
+
     /*! parses give http message without the body - 'CLRF [ message-body ]' part 
      *  - header names will be in lowercase
      *  ABNF:

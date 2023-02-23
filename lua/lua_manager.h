@@ -6,6 +6,7 @@
 #include <vector>
 #include <condition_variable>
 
+static const char LUA_ENTRY_FUNCTION[] = "handle_http_message";
 
 class lua_manager_t {
 
@@ -24,5 +25,5 @@ class lua_manager_t {
 
     bool init(const std::string& script, size_t lua_instances);
 
-    bool invoke_script(http_req_t& req, http_resp_t& resp);
+    bool invoke_script(const std::string& function_name, http_req_t* req, http_resp_t* resp);
 };

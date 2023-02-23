@@ -147,6 +147,12 @@ void http_req_t::parse_body() {
     parse_url_encoded_params(body, params);
 }
 
+std::optional<std::string> http_req_t::get_param(const std::string& name) {
+    if (auto p = params.find(name); p != std::end(params))
+        return p->second;
+
+    return std::nullopt;
+}
 
 std::optional<std::string> http_msg_with_headers_t::get_header(const std::string& name) {
     if (auto h = headers.find(name); h != std::end(headers))
@@ -164,12 +170,13 @@ std::ostream& operator<<(std::ostream& ostr, const http_msg_with_headers_t& msg_
     ostr << "HEADRS:";
     for (const auto& [k, v]: msg_with_headers.headers)
         ostr << "\t" << k << ": " << v << std::endl;
-
+    if (msg_with_headers.headers.empty())
+        ostr << std::endl;
     return ostr;
 }
 
 std::ostream& operator<<(std::ostream& ostr, const http_req_t& http_req) {
-    ostr << "HTTP REQ: " << http_req.method << " " << http_req.path << "\n";
+    ostr << "HTTP REQ: " << HTTP_VERS << " " << http_req.method << " " << http_req.path << "\n";
     ostr << static_cast<http_msg_with_headers_t>(http_req);
     ostr << "PARAMS:";
     for (const auto& [k, v]: http_req.params)
@@ -183,6 +190,7 @@ std::ostream& operator<<(std::ostream& ostr, const http_req_t& http_req) {
 std::ostream& operator<<(std::ostream& ostr, const http_resp_t& http_resp) {
     ostr << "HTTP RESP: " << http_resp.code << " " << http_resp.reason << "\n";
     ostr << static_cast<http_msg_with_headers_t>(http_resp);
+    ostr << "BODY: " << http_resp.body;
 
     return ostr;
 }
@@ -218,6 +226,10 @@ std::string http_resp_t::serialize_to_string() const {
         result.append(NEW_LINE);
         result.append(body);
     } else {
+        result.append("content-length"); // prevent client's 'Chunked transfer encoding'
+        result.append(SEP);
+        result.append("0");
+        result.append(NEW_LINE);
         result.append(NEW_LINE);
     }
 

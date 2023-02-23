@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <boost/log/trivial.hpp>
 
-static const char LUA_ENTRY_FUNCTION[] = "handle_http_message";
 
 static const int LUA_TYPE_FUNCTION = 6;
 
@@ -78,17 +77,21 @@ bool lua_manager_t::init(const std::string& script, size_t lua_instances) {
 }
 
 
-bool lua_manager_t::invoke_script(http_req_t& req, http_resp_t& resp) {
+bool lua_manager_t::invoke_script(const std::string& function_name, http_req_t* req, http_resp_t* resp) {
     lua_State* l = get_available_lua_state(true);
 
-    int stackn = lua_gettop(l);
+    BOOST_LOG_TRIVIAL(debug) << "SCRIPT ENTER: req=" << (void*)req << ", resp=" << (void*)resp;
 
-    lua_getglobal(l, LUA_ENTRY_FUNCTION);
-    lua_pushlightuserdata(l, &req);
+    lua_getglobal(l, function_name.c_str());
+
+    auto **req_ptr = (http_req_t **)lua_newuserdata(l, sizeof(http_req_t *));
+    *req_ptr = req;
     luaL_setmetatable(l, LUA_HTTP_REQ_META);
 
-    lua_pushlightuserdata(l, &resp);
+    auto **resp_ptr = (http_resp_t **)lua_newuserdata(l, sizeof(http_resp_t *));
+    *resp_ptr = resp;
     luaL_setmetatable(l, LUA_HTTP_RESP_META);
+
 
     bool lua_result = true;
     if (auto ret = lua_pcall(l, 2, 0, 0); ret != LUA_OK) {
