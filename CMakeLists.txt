@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 
 set(CMAKE_CXX_FLAGS "-std=c++17 -ggdb3" )
 
+enable_testing()
 
 set(TARGET http_server)
 add_executable(${TARGET} main.cpp)
