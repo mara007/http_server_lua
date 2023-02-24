@@ -27,6 +27,7 @@ target_link_libraries(
     ${TARGET}
     http
     lua_man
+    common
     ${Boost_LIBRARIES}
 )
 
@@ -34,6 +35,7 @@ target_link_libraries(
 
 add_subdirectory(http)
 add_subdirectory(lua)
+add_subdirectory(common)
 
 add_subdirectory(test)
 

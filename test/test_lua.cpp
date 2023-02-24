@@ -1,4 +1,5 @@
 #include "lua/lua_manager.h"
+#include "lua/lua_shared_storage.h"
 #include "http/http_message.h"
 
 #include <iostream>
@@ -47,9 +48,13 @@ TEST(shared_storage_t, store) {
 
     ASSERT_TRUE(lua_man.invoke_script("test_shared_storage", &http_req, &http_resp));
 
+    ASSERT_EQ(shared_storage_t::instance()->get("key1"), "value1");
+    ASSERT_EQ(shared_storage_t::instance()->get("unpacked_key3"), "val3");
 }
 
-// ************* TEST ******************
+// *********************************************************
+// ************* TEST LUA TYPES PROTOTYPE ******************
+// *********************************************************
 
 struct test_lua_class_t {
     std::string dato_;

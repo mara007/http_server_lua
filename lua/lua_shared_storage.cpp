@@ -1,6 +1,12 @@
 #include "lua_shared_storage.h"
+#include "common/utils.h"
 
 #include <boost/log/trivial.hpp>
+
+#include <sstream>
+
+static const std::string MULTIVAL_SEPARATOR = "|";
+
 
 shared_storage_t::shared_storage_t()
 : m_mutex()
@@ -32,14 +38,22 @@ size_t shared_storage_t::size() {
 
 // *************** LUA ********************
 int storage_put(lua_State* l) {
-    if (lua_gettop(l) != 2) {
+    int args = lua_gettop(l);
+    if (args < 2) {
         luaL_error(l, "invalid number of arguments");
         return 1;
     }
 
     const char* key = luaL_checkstring(l, 1);
-    const char* val = luaL_checkstring(l, 2);
-    shared_storage_t::instance()->put(key, val);
+    std::ostringstream ostr;
+    for (int i = 2; i <= args; ++i) {
+        if (i != 2)
+            ostr << MULTIVAL_SEPARATOR;
+        ostr << luaL_checkstring(l, i);
+    }
+
+    BOOST_LOG_TRIVIAL(debug) << "storage::put(" << key << "): " << ostr.str();
+    shared_storage_t::instance()->put(key, ostr.str().c_str());
     return 0;
 }
 
@@ -50,14 +64,18 @@ int storage_get(lua_State* l) {
     }
 
     const char* key = luaL_checkstring(l, 1);
-    if (auto val = shared_storage_t::instance()->get(key); val) {
-        lua_pushlstring(l, val.value().data(), val.value().size());
-    } else {
+
+    auto val = shared_storage_t::instance()->get(key);
+    if (!val) {
         lua_pushnil(l);
+        return 1;
     }
 
-    return 1;
+    auto split_values = tokenize(val.value(), MULTIVAL_SEPARATOR, false);
+    for (auto v : split_values)
+        lua_pushlstring(l, v.data(), v.size());
 
+    return split_values.size();
 }
 
 int storage_size(lua_State* l) {

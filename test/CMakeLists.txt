@@ -13,6 +13,7 @@ target_link_libraries(
     test_http_server
     http
     lua_man
+    common
 
     ${Boost_LIBRARIES}
     GTest::gtest GTest::gtest_main

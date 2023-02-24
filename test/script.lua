@@ -17,6 +17,17 @@ function test_shared_storage(request, response)
     val = SHARED_STORAGE.get('key1')
     print('shared storage[key1] = ' .. val)
     print('shared storage[key1] = ' .. shared_storage.get('key1'))
+
+    SHARED_STORAGE.put('key_multi', 'val1', 'val2', 'val3', 44)
+    val1, val2 = SHARED_STORAGE.get('key_multi')
+    print('shared storage[key_multi] = ' .. val1 .. ', '.. val2)
+
+    val_array = table.pack(SHARED_STORAGE.get('key_multi'))
+    for i, v in ipairs(val_array) do
+        print('unpacked value: i=' .. i .. ' val=' .. v)
+    end
+
+    SHARED_STORAGE.put('unpacked_key3', val_array[3])
 end
 
 function prototype_function(data, data2)
