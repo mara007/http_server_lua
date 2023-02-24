@@ -1,10 +1,10 @@
 #pragma once
 
 #include <map>
-// #include <memory>
 #include <mutex>
 #include <string>
 #include <optional>
+#include <vector>
 
 #include "lua.hpp"
 
@@ -22,7 +22,10 @@ class shared_storage_t {
     void put(std::string key, std::string val);
     std::optional<std::string> get(const std::string& key);
     size_t size();
-    void for_each(const std::string& lua_callback); //name of lua function with 2 string params - key, value
+
+    std::vector<std::string> keys();
+
+    // void for_each(const std::string& lua_callback); //name of lua function with 2 string params - key, value
 
 
     static void register_type(lua_State* l);

@@ -36,6 +36,18 @@ size_t shared_storage_t::size() {
     return m_map.size();
 }
 
+std::vector<std::string> shared_storage_t::keys() {
+    std::vector<std::string> result;
+    auto guard = std::lock_guard(m_mutex);
+    result.reserve(m_map.size());
+
+    std::for_each(std::begin(m_map), std::end(m_map), [&result](auto& item){
+        result.push_back(item.first);
+    });
+
+    return result;
+}
+
 // *************** LUA ********************
 int storage_put(lua_State* l) {
     int args = lua_gettop(l);
@@ -88,6 +100,24 @@ int storage_size(lua_State* l) {
     return 1;
 }
 
+int storage_keys(lua_State* l) {
+    if (lua_gettop(l) != 0) {
+        luaL_error(l, "invalid number of arguments");
+        return 1;
+    }
+
+    auto keys = shared_storage_t::instance()->keys();
+
+    lua_createtable(l, 1, keys.size());
+    int i = 1;
+    for (auto& k : keys) {
+        lua_pushlstring(l, k.data(), k.size());
+        lua_rawseti(l, -2, i++);
+    }
+
+    return 1;
+}
+
 
 void shared_storage_t::register_type(lua_State* l) {
     BOOST_LOG_TRIVIAL(debug) << "lua: register shared_storage";
@@ -95,6 +125,7 @@ void shared_storage_t::register_type(lua_State* l) {
         {"put", storage_put},
         {"get", storage_get},
         {"size", storage_size},
+        {"keys", storage_keys},
         {"__size", storage_size},
         { nullptr, nullptr }
     };

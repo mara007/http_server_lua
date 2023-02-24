@@ -1,5 +1,6 @@
--- HTLM STYLE
-html_main_style_css = [===[
+-----  HTLM STYLE
+------------------------------------------
+HTML_MAIN_STYLE_CSS = [===[
 <style>
 :root {
   --white: #afafaf;

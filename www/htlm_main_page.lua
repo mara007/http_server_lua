@@ -1,8 +1,8 @@
-dofile('www/html_style.lua')
+-- dofile('www/html_style.lua')
 
 -- MAIN PAGE "/"
 
-html_main_page = [===[
+HTML_MAIN_PAGE_FORM = [===[
 <div>
 <h1 class="my-form">Visitors book:</h1>
 </br>
@@ -19,7 +19,13 @@ html_main_page = [===[
 <a href="/delete_visitors">Delete visitors book content..</a>
 ]===]
 
-function on_main_get()
-    html = '<!DOCTYPE html><html><head>' .. html_main_style_css .. html_main_page .. '</head></html>'
-    return html
+HTML_MAIN_PAGE_RETURN = '<a href="/">Return to main page..</a>'
+
+function on_main_get(request, response)
+    local html = '<!DOCTYPE html><html><head>'
+                 .. HTML_MAIN_STYLE_CSS
+                 .. HTML_MAIN_PAGE_FORM
+                 .. '</head></html>'
+
+    response:set_body(html)
 end

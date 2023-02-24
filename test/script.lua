@@ -28,6 +28,13 @@ function test_shared_storage(request, response)
     end
 
     SHARED_STORAGE.put('unpacked_key3', val_array[3])
+
+    for i, k in ipairs(SHARED_STORAGE.keys()) do
+        print('key[' .. i ..']: ' .. k)
+    end
+    for k in {SHARED_STORAGE.keys()} do
+        print('key: ' .. k)
+    end
 end
 
 function prototype_function(data, data2)
