@@ -32,6 +32,17 @@ function test_shared_storage(request, response)
     for i, k in ipairs(SHARED_STORAGE.keys()) do
         print('key[' .. i ..']: ' .. k)
     end
+
+    SHARED_STORAGE.put('to_delete', 'to delete')
+    print('shared storage[to_delete] = ' .. shared_storage.get('to_delete'))
+    SHARED_STORAGE.del('to_delete')
+    deleted = shared_storage.get('to_delete')
+    if delete ~= NIL then
+        print('shared storage[to_delete] = ' .. deleted)
+    else
+        print('shared storage[to_delete] = <NIL>')
+    end
+
 end
 
 function prototype_function(data, data2)

@@ -31,6 +31,15 @@ std::optional<std::string> shared_storage_t::get(const std::string& key) {
     return std::nullopt;
 }
 
+void shared_storage_t::del(const std::string& key) {
+    auto guard = std::lock_guard(m_mutex);
+    if (auto it = m_map.find(key); it != std::end(m_map)) {
+        m_map.erase(it);
+    }
+}
+
+
+
 size_t shared_storage_t::size() {
     auto guard = std::lock_guard(m_mutex);
     return m_map.size();
@@ -90,6 +99,17 @@ int storage_get(lua_State* l) {
     return split_values.size();
 }
 
+int storage_del(lua_State* l) {
+    if (lua_gettop(l) != 1) {
+        luaL_error(l, "invalid number of arguments");
+        return 1;
+    }
+
+    const char* key = luaL_checkstring(l, 1);
+    shared_storage_t::instance()->del(key);
+    return 0;
+}
+
 int storage_size(lua_State* l) {
     if (lua_gettop(l) != 0) {
         luaL_error(l, "invalid number of arguments");
@@ -124,6 +144,7 @@ void shared_storage_t::register_type(lua_State* l) {
     static const luaL_Reg shared_storage_meta[] = {
         {"put", storage_put},
         {"get", storage_get},
+        {"del", storage_del},
         {"size", storage_size},
         {"keys", storage_keys},
         {"__size", storage_size},

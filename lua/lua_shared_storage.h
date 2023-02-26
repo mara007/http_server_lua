@@ -21,6 +21,7 @@ class shared_storage_t {
 
     void put(std::string key, std::string val);
     std::optional<std::string> get(const std::string& key);
+    void del(const std::string& key);
     size_t size();
 
     std::vector<std::string> keys();
