@@ -1,15 +1,189 @@
-== http_server
+= http_server_lua
+:toc:
 
+primitive unsecure http server with `lua` scripting support
+
+****
+It's like nunchucs. Cool, but useless.. +
+_~Bart Simson_
+****
+
+== features
+=== http request parsing
+
+* `http` headers
+* `http` body (messages with `Content-Length` header)
+* url-encoded parameters
+* form parameters
+** `Content-Type` : `pplication/x-www-form-urlencoded` - supported
+** `Content-Type` : `multipart/form-data` - not supported
+
+=== lua scripting
+
+received `http request` is exposed to a `lua script`. Web application written in `lua` creates a `http response`
+which is then sent back to a http client.
+
+== lua support
+
+a `lua script` is invoked for each "correct" `http request`. Invalid requests are responed with `400 Bad Request`.
+A web application, written in `lua script`, then process `http request` with provided `lua api` and forms a `http response`.
+
+`http_server_lua` will search for entry point `function handle_http_message(request, response)`
+in `lua script` and pass a parsed `http request` into it. Default location for `lua script` is `www/http_server.lua`.
+
+As a `lua` interpreter is not reentrant, there may be multiple `lua` interpreters spawned in `http_server_lua`. Therefore
+when a `lua script` for example defines a global variable, it's content may vary dependin on which interpreter is a particular
+`http request` processed. When data needs to be shared between `lua` interpreters, use a `SHARED_STORAGE`.
+
+=== lua api
+
+example web application is in `www/http_server.lua`
+
+==== standard lua libraries
+as described in http://www.lua.org/manual/5.4/manual.html#6
+
+* basic library (§6.1);
+* coroutine library (§6.2);
+* package library (§6.3);
+* string manipulation (§6.4);
+* basic UTF-8 support (§6.5);
+* table manipulation (§6.6);
+* mathematical functions (§6.7) (sin, log, etc.);
+* input and output (§6.8);
+* operating system facilities (§6.9);
+* debug facilities (§6.10).
+
+==== http_req
+Object of type `http_req` is passed as a first parameter into a `lua script` entry function.
+
+[source,lua]
+----
+-- print http_req content to logs
+http_req:dump()
+
+-- adds a new 'header' with 'value'. Multiple same headers are possible.
+http_req:add_header(header, value)
+
+-- returns a value of a first 'header'. NIL if there was no such a header.
+http_req:get_header(header)
+
+-- returns http method in lowercase, e.g. get, post, ..
+http_req:get_method()
+
+-- returns path of http request, e.g. /search
+http_req:get_path()
+
+-- returns a body of http request, or ''
+http_req:get_body()
+
+-- returns a first parameter 'param'. Both url-encoded and form parameters are provided by this method
+http_req:get_param(param)
+----
+
+==== http_resp
+Object of type `http_resp` is passed as a second parameter into a `lua script` entry function.
+
+[source,lua]
+----
+-- print http_resp content to logs
+http_resp:dump()
+
+-- adds a new 'header' with 'value'. Multiple same headers are possible.
+http_resp:add_header(header, value)
+
+-- returns a value of a first 'header'. NIL if there was no such a header.
+http_resp:get_header(header)
+
+-- returns http method in lowercase, e.g. get, post, ..
+http_resp:get_method()
+
+-- set status code of http response. Valid values are in [200-600)
+http_resp:set_status_code(code)
+
+-- set reason phrase, e.g. OK or Not Found
+http_resp:set_reason(reason)
+
+-- set http body of response, e.g. '<h1>Hello!</h1>'
+http_resp:set_body(body)
+
+-- appends body_part to existing body
+http_resp:append_body(body_part)
+----
+
+==== shared_storage
+`SHARED_STORAGE` object is shared between `lua` interpreters, allowing to save the state of a web application.
+
+[source,lua]
+----
+-- note - call with '.' (dot), e.g. library, not an object instance
+
+-- stores value(s) under a key. In case of multiple 'put()' for the same key, values are overwritten
+SHARED_STORAGE.put(key, ...)
+
+-- return value(s) of given key. use lua's table.pack() to create an array from multiple results
+SHARED_STORAGE.get(key)
+
+-- deletes given key
+SHARED_STORAGE.del(key)
+
+-- return number of keys in storage
+SHARED_STORAGE.size()
+
+-- return array containing all keys in storage
+SHARED_STORAGE.keys()
+----
+
+== build
 === requirements
-standard development environment..
-* boost, boost logs
+standard development environment
+
+* c++ 17 compiler
+* cmake, make
+
+libraries:
+
+* boost (asio), boost logs (tested with 1.71 and 1.74)
+* lua (tested with lua5.3 and lua5.4)
 * gtest
 
-on ubuntu/debian
-```
-sudo apt install libboost-dev
-sudo apt install libboost-log-dev
-sudo apt install libgtest-dev
-sudo apt install liblua5.4-dev
-```
+on `ubuntu`/`debian`
+
+[source,bash]
+----
+$ sudo apt install libboost-dev libboost-log-dev libgtest-dev liblua5.4-dev
+----
+
+=== compilation
+[source,bash]
+----
+$ mkdir build # if build directory is desired
+$ cd build
+$ cmake ..
+$ make -j
+$ make test # verify
+----
+
+== run
+`http_server_lua` can be executed with following parameters:
+
+* --script - a path to `lua script`
+* --port - a port to listen on
+* --threads - a number to worker threads
+* --help
+
+all parameters have a short option, and default values.
+
+Note: when path to a `lua script` is relative, make sure it correctly specified with respect to a working directory
+
+[source,bash]
+----
+http_server_lua$ ./http_server
+=== starting ===
+================
+=== script : www/http_server.lua
+=== port   : 20000
+=== threads: 3
+================
+----
+
 

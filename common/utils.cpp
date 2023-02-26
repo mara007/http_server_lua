@@ -96,12 +96,9 @@ cmd_line_t cmd_line_t::parse(int argc, const char* argv[]) {
         return result;
 
     state_e state = state_e::NONE;
-
-        std::cerr << "argc: '" << argc << "'\n";
     int int_arg;
     for (int i = 1; i < argc; ++i) {
         std::string arg{argv[i]};
-        std::cerr << "i=" << i << ", ARG: '" << arg << "' state: " << (int)state << "\n";
 
         if (arg == "-h" || arg == "--help" ) {
             state = state_e::HELP;
@@ -167,8 +164,6 @@ cmd_line_t cmd_line_t::parse(int argc, const char* argv[]) {
                 }
             default: ;
         }
-
-        std::cerr << "FIRSROUND FALSE\n";
     }
 
     return result;
