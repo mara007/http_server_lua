@@ -16,6 +16,13 @@ lua_State* lua_manager_t::new_lua_state() {
     return l;
 }
 
+lua_manager_t::~lua_manager_t() {
+    for(auto l : m_lua_states)
+        lua_close(l);
+
+    m_lua_states.clear();
+    m_available_lua_states.clear();
+}
 
 lua_State* lua_manager_t::get_available_lua_state(bool blocking) {
     if (std::unique_lock lock(m_available_lua_states_mutex); !m_available_lua_states.empty()) {
@@ -61,14 +68,12 @@ bool lua_manager_t::init(const std::string& script, size_t lua_instances) {
 
         if (int res = luaL_dofile(l, script.c_str()); res != LUA_OK) {
             BOOST_LOG_TRIVIAL(error) << "ERROR loading LUA script " << script << ", error: " << lua_tostring(l, -1);
-            lua_close(l);
             return false;
         }
 
         if (int t = lua_getglobal(l, "handle_http_message"); t != LUA_TYPE_FUNCTION) {
             BOOST_LOG_TRIVIAL(error) << "ERROR loading LUA script " << script << ", entry 'function "
                                     << LUA_ENTRY_FUNCTION << " handle_http_message(request, response)' must be defined in a script!";
-            lua_close(l);
             return false;
         }
     }

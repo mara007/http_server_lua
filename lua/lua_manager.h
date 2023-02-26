@@ -26,4 +26,6 @@ class lua_manager_t {
     bool init(const std::string& script, size_t lua_instances);
 
     bool invoke_script(const std::string& function_name, http_req_t* req, http_resp_t* resp);
+
+    virtual ~lua_manager_t();
 };

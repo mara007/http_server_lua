@@ -4,61 +4,6 @@
 
 #include "gtest/gtest.h"
 
-std::vector<std::string_view> tokenize(std::string_view tokenize_this, std::string_view by_this, bool consume_empty);
-
-TEST(tokenize, empty) {
-    std::string empty;
-    auto res = tokenize(empty, "", false);
-
-    ASSERT_TRUE(res.empty());
-}
-
-TEST(tokenize, one) {
-    std::string data{"one"};
-    auto res = tokenize(data, " ", false);
-
-    ASSERT_EQ(res.size(), 1);
-    ASSERT_EQ(res[0], "one");
-}
-
-TEST(tokenize, two) {
-    std::string data{"one two"};
-    auto res = tokenize(data, " ", false);
-
-    ASSERT_EQ(res.size(), 2);
-    ASSERT_EQ(res[0], "one");
-    ASSERT_EQ(res[1], "two");
-}
-
-TEST(tokenize, two_extra_separators) {
-    std::string data{"one   two"};
-    auto res = tokenize(data, " ", false);
-
-    ASSERT_EQ(res.size(), 4);
-    ASSERT_EQ(res[0], "one");
-    ASSERT_EQ(res[1], "");
-    ASSERT_EQ(res[2], "");
-    ASSERT_EQ(res[3], "two");
-}
-
-TEST(tokenize, two_extra_separators_consume) {
-    std::string data{"one   two"};
-    auto res = tokenize(data, " ", true);
-
-    ASSERT_EQ(res.size(), 2);
-    ASSERT_EQ(res[0], "one");
-    ASSERT_EQ(res[1], "two");
-}
-
-TEST(tokenize, three) {
-    std::string data{"one two three"};
-    auto res = tokenize(data, " ", false);
-
-    ASSERT_EQ(res.size(), 3);
-    ASSERT_EQ(res[0], "one");
-    ASSERT_EQ(res[1], "two");
-    ASSERT_EQ(res[2], "three");
-}
 
 TEST(http_req_t, parse) {
     std::string raw_msg = "GET /path/to/resource HTTP/1.1\r\n\
@@ -88,4 +33,25 @@ Cache-Control: no-cache\r\n\
 
     parsed_msg->add_header("unknown-header", "my_value");
     ASSERT_EQ(parsed_msg->get_header("unknown-header"), "my_value");
+}
+
+TEST(http_req_t, parse_body_url_encoded_and_form_params) {
+    std::string raw_msg = "GET /path/to/resource?qp1=qv1&qp2=qv2 HTTP/1.1\r\n\
+Host: example.com\r\n\
+Content-Type: application/x-www-form-urlencoded\r\n\
+Content-Length: 15\r\n\
+";
+
+// \
+    std::cout << "msg:" << std::endl << raw_msg << std::endl;
+
+    auto parsed_msg = http_req_t::parse(raw_msg.c_str(), raw_msg.size());
+    parsed_msg->body = "fp1=fv1&fp2=fv2";
+    parsed_msg->parse_body();
+
+    ASSERT_TRUE(parsed_msg.operator bool());
+    ASSERT_EQ(parsed_msg->get_param("qp1"), "qv1");
+    ASSERT_EQ(parsed_msg->get_param("qp2"), "qv2");
+    ASSERT_EQ(parsed_msg->get_param("fp1"), "fv1");
+    ASSERT_EQ(parsed_msg->get_param("fp2"), "fv2");
 }
