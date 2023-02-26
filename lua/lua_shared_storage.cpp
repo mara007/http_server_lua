@@ -38,8 +38,6 @@ void shared_storage_t::del(const std::string& key) {
     }
 }
 
-
-
 size_t shared_storage_t::size() {
     auto guard = std::lock_guard(m_mutex);
     return m_map.size();
@@ -171,8 +169,4 @@ void shared_storage_t::register_type(lua_State* l) {
     *storage = instance();
     luaL_setmetatable(l, LUA_STORAGE_META);
     lua_setglobal(l, "SHARED_STORAGE");
-
-
-
-
 }

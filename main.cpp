@@ -3,14 +3,9 @@
 #include "lua/lua_manager.h"
 #include "common/utils.h"
 
-#include <boost/asio.hpp>
-#include <boost/log/trivial.hpp>
-
 #include <iostream>
 #include <memory>
 
-constexpr int PORT = 20000;
-constexpr int THREADS = 4;
 
 int main(int argc, const char* argv[]) {
     auto cmd_line = cmd_line_t::parse(argc, argv);

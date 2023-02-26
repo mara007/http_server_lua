@@ -5,9 +5,9 @@ dofile('www/htlm_visitors_page.lua')
 function FILL_SOME_DATA()
     -- flaw - executed from every lua state
     SHARED_STORAGE.put('Jan;Novak', os.date())
-    SHARED_STORAGE.put('Tobiášek;Jurman', os.date())
-    SHARED_STORAGE.put('Vincet;Jurman', os.date())
-    SHARED_STORAGE.put('Jarmila;Jebalová', os.date())
+    SHARED_STORAGE.put('Tobi;Smith', os.date())
+    SHARED_STORAGE.put('Vincet;Smith', os.date())
+    SHARED_STORAGE.put('Jarmila;Jebalova', os.date())
  end
 FILL_SOME_DATA()
 

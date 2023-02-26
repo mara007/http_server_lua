@@ -23,11 +23,7 @@ class shared_storage_t {
     std::optional<std::string> get(const std::string& key);
     void del(const std::string& key);
     size_t size();
-
     std::vector<std::string> keys();
-
-    // void for_each(const std::string& lua_callback); //name of lua function with 2 string params - key, value
-
 
     static void register_type(lua_State* l);
 };
