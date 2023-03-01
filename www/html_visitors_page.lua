@@ -26,17 +26,22 @@ function on_post_visitor(request, response)
     end
 
     SHARED_STORAGE.put(name .. ';' .. surname, os.date())
+    response:set_body(show_visitors())
+end
 
+function on_get_visitors(request, response)
+    response:set_body(show_visitors())
+end
+
+function show_visitors()
     local visitors_table_html = gen_visitors_table()
-    local html = '<!DOCTYPE html><html><head>'
-                 .. HTML_MAIN_STYLE_CSS
-                 .. '<div><h1>Hello!</h1>'
+    local html = '<div><h1>Hello!</h1>'
                  .. HTML_VISITORS_TABLE_HEADER
                  .. visitors_table_html
                  .. '</table><br>'
                  .. HTML_MAIN_PAGE_RETURN
-                 .. '</div></html></head>'
-    response:set_body(html)
+
+    return html_head_wrap(html)
 end
 
 function gen_visitors_table()

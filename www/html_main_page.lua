@@ -19,7 +19,7 @@ HTML_MAIN_PAGE_FORM = [===[
 <a href="/delete_visitors">Delete visitors book content..</a>
 ]===]
 
-HTML_MAIN_PAGE_RETURN = '<a href="/">Return to main page..</a>'
+HTML_MAIN_PAGE_RETURN = '<br><a href="/">Return to main page..</a>'
 
 function on_main_get(request, response)
     local html = '<!DOCTYPE html><html><head>'

@@ -1,5 +1,14 @@
------  HTLM STYLE
+-----  HTLM STYLE ------------------------
 ------------------------------------------
+
+function html_head_wrap(content)
+    local html = '<!DOCTYPE html><html><head>'
+                 .. HTML_MAIN_STYLE_CSS
+                 .. content
+                 .. '</div></html></head>'
+    return html
+end
+
 HTML_MAIN_STYLE_CSS = [===[
 <style>
 :root {

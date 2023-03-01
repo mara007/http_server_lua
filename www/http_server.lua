@@ -1,6 +1,8 @@
-dofile('www/htlm_main_page.lua')
 dofile('www/html_style.lua')
-dofile('www/htlm_visitors_page.lua')
+dofile('www/html_main_page.lua')
+dofile('www/html_style.lua')
+dofile('www/html_visitors_page.lua')
+dofile('www/html_delete_visitors_page.lua')
 
 function FILL_SOME_DATA()
     -- flaw - executed from every lua state
@@ -34,9 +36,10 @@ function on_get(request, response)
 
     if path == '/' then
         on_main_get(request, response)
-    elseif path == '/new_visitor' then
-        response:set_status_code(404)
-        response:set_reason('Not Found')
+    elseif path == '/delete_visitors' then
+        on_delete_visitors_get(request, response)
+    elseif path == '/show_visitors' then
+        on_get_visitors(request, response)
     else
         response:set_status_code(404)
         response:set_reason('Not Found at all!')

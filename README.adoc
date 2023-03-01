@@ -1,30 +1,28 @@
 = http_server_lua
 :toc:
+:toclevels: 3
 
-primitive unsecure http server with `lua` scripting support
+primitive unsecure multithreaded http server build on `boost:asio` with `lua` scripting support.
 
-****
+====
 It's like nunchucs. Cool, but useless.. +
 _~Bart Simson_
-****
+====
 
 == features
 === http request parsing
-
 * `http` headers
 * `http` body (messages with `Content-Length` header)
 * url-encoded parameters
 * form parameters
-** `Content-Type` : `pplication/x-www-form-urlencoded` - supported
-** `Content-Type` : `multipart/form-data` - not supported
+** `Content-Type` : `Application/x-www-form-urlencoded` - supported
+** `Content-Type` : `Multipart/form-data` - not supported
 
 === lua scripting
-
 received `http request` is exposed to a `lua script`. Web application written in `lua` creates a `http response`
 which is then sent back to a http client.
 
 == lua support
-
 a `lua script` is invoked for each "correct" `http request`. Invalid requests are responed with `400 Bad Request`.
 A web application, written in `lua script`, then process `http request` with provided `lua api` and forms a `http response`.
 
@@ -32,11 +30,10 @@ A web application, written in `lua script`, then process `http request` with pro
 in `lua script` and pass a parsed `http request` into it. Default location for `lua script` is `www/http_server.lua`.
 
 As a `lua` interpreter is not reentrant, there may be multiple `lua` interpreters spawned in `http_server_lua`. Therefore
-when a `lua script` for example defines a global variable, it's content may vary dependin on which interpreter is a particular
+when a `lua script` for example defines a global variable, it's content may vary depending on which interpreter is a particular
 `http request` processed. When data needs to be shared between `lua` interpreters, use a `SHARED_STORAGE`.
 
 === lua api
-
 example web application is in `www/http_server.lua`
 
 ==== standard lua libraries
@@ -177,7 +174,8 @@ Note: when path to a `lua script` is relative, make sure it correctly specified 
 
 [source,bash]
 ----
-http_server_lua$ ./http_server
+http_server_lua$ #./http_server
+http_server_lua$ ./build/http_server #when build dir was used
 === starting ===
 ================
 === script : www/http_server.lua
@@ -186,4 +184,4 @@ http_server_lua$ ./http_server
 ================
 ----
 
-
+check it at http://localhost:20000
