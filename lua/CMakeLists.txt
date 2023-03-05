@@ -3,7 +3,7 @@ include_directories(.)
 
 add_library(lua_man
     lua_manager.cpp
-    lua_functions.cpp
+    lua_http.cpp
     lua_shared_storage.cpp
 )
 

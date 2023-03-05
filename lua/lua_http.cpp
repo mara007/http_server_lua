@@ -1,4 +1,4 @@
-#include "lua_functions.h"
+#include "lua_http.h"
 #include "lua_shared_storage.h"
 
 #include "http/http_message.h"
@@ -255,12 +255,13 @@ int set_body(lua_State* l){
     auto http_resp = my_check_type<http_resp_t>(l, 2, LUA_HTTP_RESP_META);
     if (!http_resp) return 1;
 
-    const char* body = lua_tolstring(l, 2, nullptr);
+    size_t len = 0;
+    const char* body = lua_tolstring(l, 2, &len);
     if (!body) {
         return luaL_error(l, "http_resp:set_body() arg is NIL");
     }
 
-    http_resp->body = body;
+    http_resp->body.assign(body, len);
     BOOST_LOG_TRIVIAL(debug) << "lua: http_resp:set_body()";
     return 0;
 }
@@ -269,12 +270,13 @@ int append_body(lua_State* l){
     auto http_resp = my_check_type<http_resp_t>(l, 2, LUA_HTTP_RESP_META);
     if (!http_resp) return 1;
 
-    const char* body = lua_tolstring(l, 2, nullptr);
+    size_t len = 0;
+    const char* body = lua_tolstring(l, 2, &len);
     if (!body) {
         return luaL_error(l, "http_resp:set_body() arg is NIL");
     }
 
-    http_resp->body.append(body);
+    http_resp->body.append(body, len);
     BOOST_LOG_TRIVIAL(debug) << "lua: http_resp:append_body()";
     return 0;
 }

@@ -23,8 +23,11 @@ HTML_MAIN_PAGE_RETURN = '<br><a href="/">Return to main page..</a>'
 
 function on_main_get(request, response)
     local html = '<!DOCTYPE html><html><head>'
+                 .. '<link rel="icon" type="image/x-icon" href="/favicon.ico">'
+                 .. '<body>'
                  .. HTML_MAIN_STYLE_CSS
                  .. HTML_MAIN_PAGE_FORM
+                 .. '</body>'
                  .. '</head></html>'
 
     response:set_body(html)

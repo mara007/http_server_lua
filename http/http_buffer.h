@@ -13,6 +13,7 @@
 
 #include <boost/log/trivial.hpp>
 
+//! parses http messages from tcp stream data
 template<size_t N>
 class http_buffer_t {
     public:

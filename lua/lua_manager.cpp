@@ -1,5 +1,5 @@
 #include "lua_manager.h"
-#include "lua_functions.h"
+#include "lua_http.h"
 
 #include <cassert>
 #include <algorithm>

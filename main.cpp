@@ -30,7 +30,12 @@ int main(int argc, const char* argv[]) {
     server.register_new_conn_cb([lua_manager](auto conn) {
         conn->register_new_msg_cb([lua_manager](auto conn, auto http_req) {
             http_resp_t http_resp(200, "OK");
-            lua_manager->invoke_script(LUA_ENTRY_FUNCTION, http_req.get(), &http_resp);
+            auto script_result = lua_manager->invoke_script(LUA_ENTRY_FUNCTION, http_req.get(), &http_resp);
+            if (!script_result) {
+                http_resp.code = 500;
+                http_resp.reason = "Interval Server Error";
+                http_resp.body = "Script invocation failed!";
+            }
             conn->send_response(http_resp);
         });
     });

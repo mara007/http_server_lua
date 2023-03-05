@@ -22,6 +22,15 @@ _~Bart Simson_
 received `http request` is exposed to a `lua script`. Web application written in `lua` creates a `http response`
 which is then sent back to a http client.
 
+== repo content
+
+* `common` - some string and cmdline parsing using `std::string_view`
+* `http` - tcp stream parsing, request/response, http specialization for `boost::asio` connection
+* `lua` - manager providing `lua interpreters` to server threads, using `std::condition_variable`, bindings for objects exposed to `lua interpreter`
+* `server` - a common tcp server built on `boost::asio`
+* `www` - a sample web application written in `lua`
+* `test` - `gtest` unittests
+
 == lua support
 a `lua script` is invoked for each "correct" `http request`. Invalid requests are responed with `400 Bad Request`.
 A web application, written in `lua script`, then process `http request` with provided `lua api` and forms a `http response`.

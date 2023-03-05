@@ -2,10 +2,10 @@
 ------------------------------------------
 
 function html_head_wrap(content)
-    local html = '<!DOCTYPE html><html><head>'
+    local html = '<!DOCTYPE html><html><head></head><body>'
                  .. HTML_MAIN_STYLE_CSS
                  .. content
-                 .. '</div></html></head>'
+                 .. '</div></body></html>'
     return html
 end
 
