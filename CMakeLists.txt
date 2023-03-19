@@ -1,6 +1,13 @@
 project("http server")
 cmake_minimum_required(VERSION 3.16)
 
+if(DEFINED ENV{ARM})
+    message(STATUS "using ARM toolchains")
+    set(CMAKE_CXX_COMPILER arm-linux-gnueabihf-gcc-11)
+else()
+    message(STATUS "using x86 'normal' build")
+endif()
+
 set(CMAKE_CXX_FLAGS "-std=c++17 -ggdb3" )
 
 enable_testing()
