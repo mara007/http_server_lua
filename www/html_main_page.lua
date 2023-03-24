@@ -17,6 +17,8 @@ HTML_MAIN_PAGE_FORM = [===[
 <a href="/show_visitors">Show recent visitors..</a>
 <br>
 <a href="/delete_visitors">Delete visitors book content..</a>
+<br>
+<a href="/timer?start=2015-10-02T09:00:00.000Z">My timer..</a>
 ]===]
 
 HTML_MAIN_PAGE_RETURN = '<br><a href="/">Return to main page..</a>'

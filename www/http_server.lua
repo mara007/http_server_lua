@@ -4,6 +4,7 @@ dofile('www/html_main_page.lua')
 dofile('www/html_style.lua')
 dofile('www/html_visitors_page.lua')
 dofile('www/html_delete_visitors_page.lua')
+dofile('www/html_timer.lua')
 
 function FILL_SOME_DATA()
     -- flaw - executed from every lua state
@@ -37,15 +38,22 @@ function on_get(request, response)
 
     if path == '/' then
         on_main_get(request, response)
+
     elseif path == '/delete_visitors' then
         on_delete_visitors_get(request, response)
+
     elseif path == '/show_visitors' then
         on_get_visitors(request, response)
-    elseif path == '/favicon.ico' then
-        response:add_header('content-type', 'image/x-icon')
-        response:set_body(FAV_ICON)
+
+    elseif path == '/timer' then
+        on_get_timer(request, response)
+
     elseif path == '/get_file' then
-        on_get_file(request, response)
+        on_get_file_rest(request, response)
+
+    elseif on_get_filetransfer(request, response) then
+        -- file recognized/transfered
+
     else
         response:set_status_code(404)
         response:set_reason('Not Found at all!')
@@ -62,7 +70,7 @@ function on_post(request, response)
     end
 end
 
-function on_get_file(request, response)
+function on_get_file_rest(request, response)
     local file_name = request:get_param('file_name')
     if file_name == nil then
         response:set_status_code('400')
@@ -83,3 +91,20 @@ function on_get_file(request, response)
     end
     response:add_header('content-type', content_type)
 end
+
+function on_get_filetransfer(request, response)
+    local path = request:get_path()
+
+    if path == '/favicon.ico' then
+        -- 'oldschool'
+        response:add_header('content-type', 'image/x-icon')
+        response:set_body(FAV_ICON)
+        return true
+    elseif path == '/www/fav-mav.png' then
+        response:add_header('content-type', 'image/png')
+        response:set_body_from_file('www/fav-mav.png')
+        return true
+    end
+
+    return false
+  end
