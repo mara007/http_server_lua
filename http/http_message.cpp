@@ -5,6 +5,8 @@
 #include <vector>
 #include <string_view>
 #include <algorithm>
+#include <fstream>
+#include <iterator>
 
 #include <boost/log/trivial.hpp>
 
@@ -193,4 +195,27 @@ std::string http_resp_t::serialize_to_string() const {
     }
 
     return result;
+}
+
+
+bool http_resp_t::set_body_from_file(const std::string& filename) {
+    std::ifstream ifs(filename, std::ios_base::in | std::ios_base::binary | std::ios_base::ate);
+    if (!ifs) {
+        BOOST_LOG_TRIVIAL(debug) << "file open failed: " << filename;
+        return false;
+    }
+
+    auto file_size = ifs.tellg();
+    ifs.seekg(0);
+
+    body.reserve(file_size);
+
+    BOOST_LOG_TRIVIAL(debug) << "reading " << file_size << " bytes";
+    try {
+        body.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    } catch (std::ios_base::failure& e) {
+        BOOST_LOG_TRIVIAL(debug) << "reading failed: " << e.what();
+        return false;
+    }
+    return true;
 }

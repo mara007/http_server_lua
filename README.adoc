@@ -112,6 +112,9 @@ http_resp:set_reason(reason)
 -- set http body of response, e.g. '<h1>Hello!</h1>'
 http_resp:set_body(body)
 
+-- loads body from filename. It can be absolute or relative path. Dangerous!
+http_resp:set_body_from_file(filename)
+
 -- appends body_part to existing body
 http_resp:append_body(body_part)
 ----
@@ -156,7 +159,7 @@ on `ubuntu`/`debian`
 
 [source,bash]
 ----
-$ sudo apt install libboost-dev libboost-log-dev libgtest-dev liblua5.4-dev
+$ sudo apt install libboost-dev libboost-log-dev libgtest-dev liblua5.4-dev googletest
 ----
 
 === compilation
@@ -179,7 +182,7 @@ $ make test # verify
 
 all parameters have a short option, and default values.
 
-Note: when path to a `lua script` is relative, make sure it correctly specified with respect to a working directory
+Note: the path to a `lua script` is relative, make sure its correctly specified with respect to a working directory
 
 [source,bash]
 ----
@@ -193,4 +196,5 @@ http_server_lua$ ./build/http_server #when build dir was used
 ================
 ----
 
-check it at http://localhost:20000
+check it at http://localhost:20000 +
+secret hacker `get_file` API at http://localhost:20000/get_file?file_name=main.cpp&content_type=txt

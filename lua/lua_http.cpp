@@ -281,6 +281,22 @@ int append_body(lua_State* l){
     return 0;
 }
 
+int set_body_from_file(lua_State* l){
+    auto http_resp = my_check_type<http_resp_t>(l, 2, LUA_HTTP_RESP_META);
+    if (!http_resp) return 1;
+
+    size_t len = 0;
+    const char* filename = lua_tolstring(l, 2, &len);
+    if (!filename) {
+        return luaL_error(l, "http_resp:set_body_from_file() arg is NIL");
+    }
+
+    bool is_ok = http_resp->set_body_from_file(filename);
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_resp:set_body_from_file(): " << is_ok;
+    lua_pushboolean(l, static_cast<int>(is_ok));
+    return 1;
+}
+
 int dump(lua_State* l) {
     auto http_resp = my_check_type<http_resp_t>(l, 1, LUA_HTTP_RESP_META);
     if (!http_resp) return 0;
@@ -301,6 +317,7 @@ void register_type(lua_State* l) {
         {"set_reason", set_reason},
         {"set_body", set_body},
         {"append_body", append_body},
+        {"set_body_from_file", set_body_from_file},
         { nullptr, nullptr }
     };
 

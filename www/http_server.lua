@@ -44,6 +44,8 @@ function on_get(request, response)
     elseif path == '/favicon.ico' then
         response:add_header('content-type', 'image/x-icon')
         response:set_body(FAV_ICON)
+    elseif path == '/get_file' then
+        on_get_file(request, response)
     else
         response:set_status_code(404)
         response:set_reason('Not Found at all!')
@@ -60,3 +62,24 @@ function on_post(request, response)
     end
 end
 
+function on_get_file(request, response)
+    local file_name = request:get_param('file_name')
+    if file_name == nil then
+        response:set_status_code('400')
+        response:set_reason('Mandatory parameter "file_name" missing!')
+        return
+    end
+
+    local content_type = request:get_param('content_type')
+    if content_type == nil then
+        content_type = 'application/octet-stream'
+    end
+
+    local result = response:set_body_from_file(file_name)
+    if not result then
+        response:set_status_code('404')
+        response:set_reason('File not found - ' .. file_name)
+        return
+    end
+    response:add_header('content-type', content_type)
+end

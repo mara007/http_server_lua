@@ -67,6 +67,8 @@ struct http_resp_t : public http_msg_with_headers_t {
 
      */
     std::string serialize_to_string() const;
+
+    bool set_body_from_file(const std::string& filename);
 };
 
 std::ostream& operator<<(std::ostream& ostr, const http_msg_with_headers_t& msg_with_headers);
