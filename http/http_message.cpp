@@ -50,7 +50,7 @@ std::shared_ptr<http_req_t> http_req_t::parse(const char* data, size_t lenght) {
     }
 
     if (start_line[2] != HTTP_VERS) {
-        BOOST_LOG_TRIVIAL(info) << "invalid - bad http version: " << start_line[3];
+        BOOST_LOG_TRIVIAL(info) << "invalid - bad http version: " << start_line[2];
         return nullptr;
     }
     auto msg = std::make_shared<http_req_t>();
