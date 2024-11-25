@@ -1,8 +1,11 @@
+#include "common/timer.h"
 #include "common/utils.h"
 
 #include <iostream>
 
 #include "gtest/gtest.h"
+#include <chrono>
+#include <thread>
 
 
 TEST(tokenize, empty) {
@@ -59,6 +62,21 @@ TEST(tokenize, three) {
     ASSERT_EQ(res[2], "three");
 }
 
+// TEST(tokenize, crash) {
+//     std::string data{"HTTP/1.1 get /\r\nHTTP/1.1 get /\r\nHTTP/1.1 get /\r\n\r\n"};
+//     auto res = tokenize(data, "\r\n", false);
+//
+//     ASSERT_EQ(res.size(), 4);
+//
+//     auto res2 = tokenize(res.front(), " ", true);
+//     std::cout << res2[0] << res2[1] << res2[2] << std::endl;
+//     std::cout << res2[3];
+//     ASSERT_EQ(res2[0], "one");
+//     ASSERT_EQ(res2[1], "two");
+//     ASSERT_EQ(res2[2], "three");
+// }
+//
+
 // *********************** CMDLINE ****************************
 
 TEST(cmd_line_t, defaults) {
@@ -90,3 +108,43 @@ TEST(cmd_line_t, some_param) {
     ASSERT_EQ(cmd.threads, 3);
     ASSERT_EQ(cmd.script, "my_script.lua");
 }
+
+// ********************** TIMER *****************************
+//
+using namespace std::chrono_literals;
+
+TEST(my_timer_t, start_stop) {
+    my_timer_t timer(500ms);
+    timer.init();
+    timer.finish();
+}
+
+TEST(my_timer_t, timer_expires) {
+    my_timer_t timer(500ms);
+    timer.init();
+
+    int invoke_count = 0;
+    auto my_cb = [&](std::string id){
+        return [&, id] {
+            ++invoke_count;
+            std::cout << "cb called: " << id << " order: " << invoke_count << std::endl;
+        };
+    };
+
+    timer.add(my_cb("3s"), 3s);
+    timer.add(my_cb("2s - a"), 2s);
+    timer.add(my_cb("2s - b"), 2s);
+    timer.add(my_cb("2s - c"), 2s);
+    timer.add(my_cb("2s - d"), 2s);
+    timer.add(my_cb("1s"), 1s);
+
+    std::this_thread::sleep_for(4s);
+    ASSERT_EQ(invoke_count, 6);
+
+    timer.finish();
+}
+
+
+
+
+
