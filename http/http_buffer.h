@@ -97,6 +97,9 @@ class http_buffer_t {
                 } catch (std::invalid_argument& e) {
                     BOOST_LOG_TRIVIAL(error) << "Invalid 'content-length'";
                     return new_data_state_e::MSG_ERROR;
+                } catch (std::out_of_range& e) {
+                    BOOST_LOG_TRIVIAL(error) << "'content-length' out of range";
+                    return new_data_state_e::MSG_ERROR;
                 }
 
                 if (cl > MAX_BODY_SIZE)

@@ -62,10 +62,19 @@ class server_t {
     private:
     void do_accept() {
         auto cb = [this](boost::system::error_code ec, boost::asio::ip::tcp::socket socket) {
-            if (ec)
+            if (ec) {
+                if (ec != boost::asio::error::operation_aborted)
+                    do_accept(); // transient error, keep accepting
                 return;
+            }
 
-            auto ep = socket.remote_endpoint();
+            boost::system::error_code ep_ec;
+            auto ep = socket.remote_endpoint(ep_ec);
+            if (ep_ec) {
+                BOOST_LOG_TRIVIAL(warning) << "Accepted socket has no remote endpoint: " << ep_ec.message();
+                do_accept();
+                return;
+            }
             BOOST_LOG_TRIVIAL(info) << "New connection from " << ep.address().to_string();
 
             auto conn = std::make_shared<connection_t>(m_io_context, std::move(socket));

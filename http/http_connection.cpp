@@ -26,7 +26,7 @@ http_connection_t::~http_connection_t() {
 }
 
 void http_connection_t::close() {
-    m_io_context.post(m_io_strand.wrap([self=shared_from_this()]() {
+    boost::asio::post(m_io_strand.wrap([self=shared_from_this()]() {
         BOOST_LOG_TRIVIAL(info) << "connection_t - closing socket";
         self->m_socket.close();
     }));
@@ -67,7 +67,7 @@ void http_connection_t::start() {
 void http_connection_t::send_response(http_resp_t& resp) {
     BOOST_LOG_TRIVIAL(info) << "connection_t::send_response()";
 
-    m_io_context.post(m_io_strand.wrap(
+    boost::asio::post(m_io_strand.wrap(
         [self=shared_from_this(), resp_str=resp.serialize_to_string()](){
             self->do_queue_message(resp_str);
         }));
