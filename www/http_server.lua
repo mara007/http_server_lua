@@ -2,6 +2,7 @@ dofile('www/favicon.lua')
 dofile('www/html_style.lua')
 dofile('www/html_main_page.lua')
 dofile('www/html_style.lua')
+dofile('www/html_error_page.lua')
 dofile('www/html_visitors_page.lua')
 dofile('www/html_delete_visitors_page.lua')
 dofile('www/html_timer.lua')
@@ -28,6 +29,8 @@ function handle_http_message(request, response)
     else
         response:set_status_code(405)
         response:set_reason('Method Not Allowed')
+        response:set_body(build_error_page(405, 'Method Not Allowed'))
+        response:add_header('content-type', 'text/html')
     end
 end
 
@@ -56,8 +59,9 @@ function on_get(request, response)
 
     else
         response:set_status_code(404)
-        response:set_reason('Not Found at all!')
-        response:set_body(string.format('<h1>Resource not found: <b>%s</b></h1>', path))
+        response:set_reason('Not Found')
+        response:set_body(build_error_page(404, 'Not Found'))
+        response:add_header('content-type', 'text/html')
      end
 
 end
@@ -76,13 +80,17 @@ function on_get_file_rest(request, response)
     if expected_api_key == nil or expected_api_key == '' or api_key ~= expected_api_key then
         response:set_status_code('401')
         response:set_reason('Unauthorized')
+        response:set_body(build_error_page(401, 'Unauthorized'))
+        response:add_header('content-type', 'text/html')
         return
     end
 
     local file_name = request:get_param('file_name')
     if file_name == nil then
         response:set_status_code('400')
-        response:set_reason('Mandatory parameter "file_name" missing!')
+        response:set_reason('Bad Request')
+        response:set_body(build_error_page(400, 'Bad Request'))
+        response:add_header('content-type', 'text/html')
         return
     end
 
@@ -94,7 +102,9 @@ function on_get_file_rest(request, response)
     local result = response:set_body_from_file(file_name)
     if not result then
         response:set_status_code('404')
-        response:set_reason('File not found - ' .. file_name)
+        response:set_reason('Not Found')
+        response:set_body(build_error_page(404, 'Not Found'))
+        response:add_header('content-type', 'text/html')
         return
     end
     response:add_header('content-type', content_type)
