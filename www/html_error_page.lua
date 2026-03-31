@@ -143,10 +143,10 @@ table, td, th {
 
 local function get_fortune()
     local handle = io.popen('fortune 2>/dev/null')
-    if handle == nil then return nil end
+    if not handle then return nil end
     local result = handle:read('*a')
     handle:close()
-    if result == nil or result == '' then return nil end
+    if not result or result == '' then return nil end
     -- escape HTML special chars
     result = result:gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')
     -- preserve line breaks
@@ -160,7 +160,7 @@ function build_error_page(code, reason)
 
     local fortune_html = ''
     local fortune_text = get_fortune()
-    if fortune_text ~= nil then
+    if fortune_text then
         fortune_html = string.format([===[
 <div class="fortune-box">
     <div class="fortune-label">&#x1F4DC; Motto of the day</div>

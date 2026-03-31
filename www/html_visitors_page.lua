@@ -47,18 +47,13 @@ end
 function gen_visitors_table()
     local visitors = SHARED_STORAGE.keys()
 
-    local html = ''
+    local rows = {}
     for i, name in ipairs(visitors) do
-        local date = SHARED_STORAGE.get(name)
-        if date == nil then
-            date = '##deleted##'
-        end
-
+        local date = SHARED_STORAGE.get(name) or '##deleted##'
         -- unpack from 'name;surname'
-        local fn = string.sub(name, 1, string.find(name, ';')-1)
-        local sn = string.sub(name, string.find(name, ';')+1)
-        html = html .. string.format('<tr> <td>%s</td> <td>%s</td> <td>%s</td><td>%s</td></tr>\n', i, fn, sn, date)
+        local fn, sn = name:match('([^;]+);([^;]+')
+        rows[#rows + 1] = ('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>'):format(i, fn, sn, date)
     end
 
-    return html
+    return table.concat(rows, '\n')
 end

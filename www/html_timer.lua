@@ -71,7 +71,7 @@ HTML_TIMER_PAGE = [===[
 function on_get_timer(request, response)
     local start = request:get_param('start')
 
-    if start == nil then
+    if not start then
         response:set_status_code(400)
         response:set_body('Missing "start" param')
         return
