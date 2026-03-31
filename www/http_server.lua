@@ -71,6 +71,14 @@ function on_post(request, response)
 end
 
 function on_get_file_rest(request, response)
+    local expected_api_key = os.getenv('HTTP_SERVER_API_KEY')
+    local api_key = request:get_param('api_key')
+    if expected_api_key == nil or expected_api_key == '' or api_key ~= expected_api_key then
+        response:set_status_code('401')
+        response:set_reason('Unauthorized')
+        return
+    end
+
     local file_name = request:get_param('file_name')
     if file_name == nil then
         response:set_status_code('400')
