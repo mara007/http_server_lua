@@ -74,11 +74,42 @@ function on_post(request, response)
     end
 end
 
+local DANGEROUS_PATH_PATTERNS = {
+    '%.%.',          -- path traversal:  ../../
+    '^/',            -- absolute path:   /etc/passwd
+    '^~',            -- home shortcut:   ~/
+    '%z',            -- null byte
+    '\\',            -- backslash
+    'etc/passwd',
+    'etc/shadow',
+    'etc/sudoers',
+    'etc/ssh',
+    'etc/ssl',
+    'proc/',
+    'sys/',
+    '%.env',         -- .env files
+    '%.git/',        -- git internals
+    'id_rsa',        -- SSH private keys
+    'id_ed25519',
+    'id_ecdsa',
+    '%.ssh/',
+    'authorized_keys',
+    '%.aws/',        -- cloud credentials
+    '%.kube/',
+}
+
+local function is_safe_path(path)
+    for _, pattern in ipairs(DANGEROUS_PATH_PATTERNS) do
+        if path:find(pattern) then return false end
+    end
+    return true
+end
+
 function on_get_file_rest(request, response)
     local expected_api_key = os.getenv('HTTP_SERVER_API_KEY')
     local api_key = request:get_param('api_key')
-    if expected_api_key == nil or expected_api_key == '' or api_key ~= expected_api_key then
-        response:set_status_code('401')
+    if not expected_api_key or expected_api_key == '' or api_key ~= expected_api_key then
+        response:set_status_code(401)
         response:set_reason('Unauthorized')
         response:set_body(build_error_page(401, 'Unauthorized'))
         response:add_header('content-type', 'text/html')
@@ -86,22 +117,27 @@ function on_get_file_rest(request, response)
     end
 
     local file_name = request:get_param('file_name')
-    if file_name == nil then
-        response:set_status_code('400')
+    if not file_name then
+        response:set_status_code(400)
         response:set_reason('Bad Request')
         response:set_body(build_error_page(400, 'Bad Request'))
         response:add_header('content-type', 'text/html')
         return
     end
 
-    local content_type = request:get_param('content_type')
-    if content_type == nil then
-        content_type = 'application/octet-stream'
+    local content_type = request:get_param('content_type') or 'application/octet-stream'
+
+    if not is_safe_path(file_name) then
+        response:set_status_code(403)
+        response:set_reason('Forbidden')
+        response:set_body(build_error_page(403, 'Forbidden'))
+        response:add_header('content-type', 'text/html')
+        return
     end
 
     local result = response:set_body_from_file(file_name)
     if not result then
-        response:set_status_code('404')
+        response:set_status_code(404)
         response:set_reason('Not Found')
         response:set_body(build_error_page(404, 'Not Found'))
         response:add_header('content-type', 'text/html')
