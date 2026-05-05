@@ -19,7 +19,31 @@ FILL_SOME_DATA()
 -----------------------------------------------
 -- script entry function
 -----------------------------------------------
+
+local SCANNER_AGENTS = {
+    'CensysInspect', 'Shodan', 'masscan', 'zgrab', 'ZGrab',
+    'python%-requests', 'Go%-http%-client', 'curl', 'wget', 'Wget',
+    'Nuclei', 'Nmap', 'sqlmap', 'nikto', 'dirbuster',
+}
+
+local TARPIT_SECONDS = 60
+
+local function is_scanner(request)
+    local ua = request:get_header('user-agent') or ''
+    for _, pattern in ipairs(SCANNER_AGENTS) do
+        if ua:find(pattern) then
+            return true
+        end
+    end
+    return false
+end
+
 function handle_http_message(request, response)
+    if is_scanner(request) then
+        response:set_tarpit(TARPIT_SECONDS)
+        return
+    end
+
     local method = request:get_method()
 
     if method == 'get' then

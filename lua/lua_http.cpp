@@ -297,6 +297,20 @@ int set_body_from_file(lua_State* l){
     return 1;
 }
 
+int set_tarpit(lua_State* l){
+    auto http_resp = my_check_type<http_resp_t>(l, 2, LUA_HTTP_RESP_META);
+    if (!http_resp) return 1;
+
+    int seconds = static_cast<int>(lua_tointeger(l, 2));
+    if (seconds <= 0) {
+        return luaL_error(l, "http_resp:set_tarpit() seconds must be > 0");
+    }
+
+    http_resp->tarpit_seconds = seconds;
+    BOOST_LOG_TRIVIAL(debug) << "lua: http_resp:set_tarpit(" << seconds << ")";
+    return 0;
+}
+
 int dump(lua_State* l) {
     auto http_resp = my_check_type<http_resp_t>(l, 1, LUA_HTTP_RESP_META);
     if (!http_resp) return 0;
@@ -318,6 +332,7 @@ void register_type(lua_State* l) {
         {"set_body", set_body},
         {"append_body", append_body},
         {"set_body_from_file", set_body_from_file},
+        {"set_tarpit", set_tarpit},
         { nullptr, nullptr }
     };
 

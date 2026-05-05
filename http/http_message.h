@@ -51,6 +51,7 @@ struct http_resp_t : public http_msg_with_headers_t {
     std::string reason;
     std::string body;
     int code;
+    int tarpit_seconds = 0; //!< if > 0: drip tarpit instead of sending response
 
     http_resp_t(int c, std::string reas)
     : http_msg_with_headers_t(), reason(reas), body(), code(c)

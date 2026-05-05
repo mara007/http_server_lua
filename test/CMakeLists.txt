@@ -1,5 +1,4 @@
 find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIR})
 include_directories(${LUA_INCLUDE_DIR})
 include_directories(..)
 

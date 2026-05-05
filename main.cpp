@@ -36,7 +36,11 @@ int main(int argc, const char* argv[]) {
                 http_resp.reason = "Interval Server Error";
                 http_resp.body = "Script invocation failed!";
             }
-            conn->send_response(http_resp);
+            if (http_resp.tarpit_seconds > 0) {
+                conn->start_tarpit(http_resp.tarpit_seconds);
+            } else {
+                conn->send_response(http_resp);
+            }
         });
     });
 

@@ -1,5 +1,6 @@
 #include "http_connection.h"
 #include <boost/log/trivial.hpp>
+#include <cstdlib>
 
 
 
@@ -30,6 +31,36 @@ void http_connection_t::close() {
         BOOST_LOG_TRIVIAL(info) << "connection_t - closing socket";
         self->m_socket.close();
     }));
+}
+
+void http_connection_t::start_tarpit(int seconds) {
+    BOOST_LOG_TRIVIAL(info) << "connection_t: tarpit started, duration=" << seconds << "s";
+    drip_byte(seconds);
+}
+
+void http_connection_t::drip_byte(int remaining_sec) {
+    if (remaining_sec <= 0) {
+        close();
+        return;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "connection_t: tarpit drip, client=" << m_socket.remote_endpoint().address().to_string() << " remaining=" << remaining_sec << "s";
+
+    int interval = 1 + (std::rand() % 3);
+    int next_remaining = remaining_sec - interval;
+    auto timer = std::make_shared<boost::asio::steady_timer>(m_io_context);
+    timer->expires_after(std::chrono::seconds(interval));
+    timer->async_wait([self = shared_from_this(), timer, next_remaining](boost::system::error_code ec) {
+        if (ec) return;
+        boost::asio::post(self->m_io_strand.wrap([self, timer, next_remaining]() {
+            boost::asio::async_write(self->m_socket,
+                boost::asio::buffer(" ", 1),
+                [self, timer, next_remaining](boost::system::error_code ec, std::size_t) {
+                    if (ec) return; // scanner disconnected
+                    self->drip_byte(next_remaining);
+                });
+        }));
+    });
 }
 
 void http_connection_t::do_read() {

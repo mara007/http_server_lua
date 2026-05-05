@@ -23,11 +23,13 @@ class http_connection_t : public std::enable_shared_from_this<http_connection_t>
 
     void send_response(http_resp_t& resp);
     void close();
+    void start_tarpit(int seconds);
 
     private:
     void do_read();
     void do_queue_message(std::string resp_str);
     void start_packet_send();
+    void drip_byte(int remaining_sec);
 
     enum  { max_length = 1024 };
     char m_socket_buf[max_length];
